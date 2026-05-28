@@ -1,0 +1,403 @@
+/* ─── Reset & Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --card-w: 90px;
+  --card-h: 126px;
+  --card-radius: 8px;
+  --tableau-overlap: 28px;   /* face-down overlap */
+  --tableau-fan: 22px;       /* face-up fan spacing */
+  --card-shadow: 0 3px 8px rgba(0,0,0,.35);
+  --green-felt: #2d5a27;
+  --gold: #c8a84b;
+  --cream: #fdf8ee;
+  --red-muted: #c0392b;
+  --black-soft: #2c2c2c;
+  --wood-light: #c89a5a;
+  --wood-dark: #7a4c1d;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Georgia', serif;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* ─── Wood-grain background ────────────────────────────────────── */
+body {
+  background-color: #8B5A2B;
+  background-image:
+    repeating-linear-gradient(
+      92deg,
+      transparent 0px,
+      transparent 8px,
+      rgba(0,0,0,.06) 8px,
+      rgba(0,0,0,.06) 9px,
+      transparent 9px,
+      transparent 18px,
+      rgba(255,255,255,.04) 18px,
+      rgba(255,255,255,.04) 19px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 40px,
+      rgba(0,0,0,.04) 40px,
+      rgba(0,0,0,.04) 42px
+    ),
+    linear-gradient(
+      175deg,
+      #a0622a 0%,
+      #8B5A2B 20%,
+      #7a4c1d 40%,
+      #8f5f2e 60%,
+      #9e6830 80%,
+      #7a4c1d 100%
+    );
+}
+
+/* ─── Game container ────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 12px 16px 8px;
+  gap: 10px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ─── Header / HUD ──────────────────────────────────────────────── */
+#hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+#hud h1 {
+  font-size: 1.25rem;
+  color: #f5e6c8;
+  text-shadow: 1px 2px 4px rgba(0,0,0,.5);
+  letter-spacing: .05em;
+  margin-right: auto;
+}
+
+.hud-stat {
+  background: rgba(0,0,0,.35);
+  color: #f5e6c8;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: .8rem;
+  line-height: 1.4;
+  min-width: 64px;
+  text-align: center;
+}
+.hud-stat span { display: block; font-size: 1rem; font-weight: bold; }
+
+#btn-new-game, #btn-auto {
+  background: linear-gradient(160deg, #c8a84b, #a07830);
+  color: #2c1a00;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: .85rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  transition: filter .15s;
+}
+#btn-new-game:active, #btn-auto:active { filter: brightness(.85); }
+#btn-auto { background: linear-gradient(160deg, #7ecf7e, #3a8f3a); color: #001a00; }
+#btn-auto:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ─── Decorative corners ────────────────────────────────────────── */
+#corner-decor {
+  position: fixed;
+  pointer-events: none;
+}
+.corner-img {
+  position: fixed;
+  width: 72px;
+  height: 72px;
+  opacity: .75;
+  object-fit: contain;
+}
+#decor-cat    { top: 6px;  left: 6px; }
+#decor-candle { top: 6px;  right: 6px; }
+#decor-plant  { bottom: 6px; left: 6px; }
+#decor-teacup { bottom: 6px; right: 6px; }
+
+/* ─── Play area ─────────────────────────────────────────────────── */
+#play-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── Top row: stock + waste + gap + foundations ─────────────────── */
+#top-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.gap { flex: 1; }
+
+/* ─── Tableau ───────────────────────────────────────────────────── */
+#tableau-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 8px;
+}
+
+.tableau-col {
+  flex: 1;
+  min-width: var(--card-w);
+  position: relative;
+}
+
+/* ─── Slots (empty card placeholders) ──────────────────────────── */
+.slot {
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-radius);
+  border: 2px dashed rgba(255,255,255,.25);
+  background: rgba(0,0,0,.15);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.slot.foundation-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: rgba(255,255,255,.18);
+  cursor: pointer;
+}
+.slot.foundation-slot:hover { border-color: rgba(255,255,255,.45); }
+
+/* Foundation suit symbols */
+.slot.foundation-slot::after {
+  content: attr(data-suit);
+  font-size: 2.2rem;
+  color: rgba(255,255,255,.2);
+  pointer-events: none;
+}
+
+/* ─── Cards ─────────────────────────────────────────────────────── */
+.card-container {
+  position: absolute;
+  width: var(--card-w);
+  perspective: 600px;
+  cursor: pointer;
+}
+
+.card-inner {
+  width: var(--card-w);
+  height: var(--card-h);
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform .35s ease;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.card-container.flipping .card-inner {
+  animation: flipCard .35s ease forwards;
+}
+
+@keyframes flipCard {
+  0%   { transform: rotateY(0deg); }
+  50%  { transform: rotateY(90deg); }
+  100% { transform: rotateY(0deg); }
+}
+
+.card-face, .card-back {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--card-radius);
+  backface-visibility: hidden;
+}
+
+/* ─── Card back ─────────────────────────────────────────────────── */
+.card-back {
+  background: #1a3d1a;
+  overflow: hidden;
+}
+
+.card-back-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Card face ─────────────────────────────────────────────────── */
+.card-face {
+  background: var(--cream);
+  display: flex;
+  flex-direction: column;
+  padding: 5px 6px;
+  overflow: hidden;
+}
+
+.card-face .rank-suit-top {
+  font-size: .85rem;
+  font-weight: bold;
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.card-face .rank-suit-bottom {
+  font-size: .85rem;
+  font-weight: bold;
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  transform: rotate(180deg);
+  margin-top: auto;
+}
+
+.card-face .suit-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.card-face.red .rank-suit-top,
+.card-face.red .rank-suit-bottom,
+.card-face.red .suit-center { color: var(--red-muted); }
+
+.card-face.black .rank-suit-top,
+.card-face.black .rank-suit-bottom,
+.card-face.black .suit-center { color: var(--black-soft); }
+
+/* ─── Card states ────────────────────────────────────────────────── */
+.card-container.dragging {
+  opacity: .75;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.card-container.selected {
+  filter: brightness(1.1);
+}
+
+.card-container.drop-target > .card-inner {
+  box-shadow: 0 0 0 3px #f5d76e, var(--card-shadow);
+}
+
+/* ─── Tableau column layout ─────────────────────────────────────── */
+.tableau-col {
+  position: relative;
+  min-height: calc(var(--card-h) + 2px);
+}
+
+/* ─── Stock ──────────────────────────────────────────────────────── */
+#stock {
+  cursor: pointer;
+}
+#stock:hover .card-back { filter: brightness(1.15); }
+
+/* ─── Win overlay ────────────────────────────────────────────────── */
+#win-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+}
+#win-overlay.visible { display: flex; }
+
+#win-box {
+  background: linear-gradient(150deg, #fdf8ee, #f5e6c8);
+  border-radius: 16px;
+  padding: 32px 40px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+}
+#win-box h2 {
+  font-size: 2rem;
+  color: #5a2d00;
+  margin-bottom: 8px;
+}
+#win-box p { color: #6b4226; font-size: 1rem; margin-bottom: 20px; }
+#btn-play-again {
+  background: linear-gradient(160deg, #c8a84b, #a07830);
+  color: #2c1a00;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 28px;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0,0,0,.35);
+}
+
+/* ─── Deal animation ─────────────────────────────────────────────── */
+@keyframes dealCard {
+  from { transform: translate(-50vw, -50vh) scale(.4); opacity: 0; }
+  to   { transform: translate(0, 0) scale(1); opacity: 1; }
+}
+.card-container.dealing {
+  animation: dealCard .4s ease forwards;
+}
+
+/* ─── Foundation slide animation ────────────────────────────────── */
+@keyframes slideToFoundation {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(var(--slide-x), var(--slide-y)) scale(.9); opacity: 0; }
+}
+.card-container.sliding-to-foundation {
+  animation: slideToFoundation .3s ease forwards;
+  pointer-events: none;
+  z-index: 500;
+}
+
+/* ─── Responsive / tablet ────────────────────────────────────────── */
+@media (max-width: 680px) {
+  :root {
+    --card-w: 76px;
+    --card-h: 107px;
+    --tableau-overlap: 22px;
+    --tableau-fan: 18px;
+  }
+  #app { padding: 8px 8px 4px; gap: 6px; }
+  #top-row { gap: 5px; }
+  #tableau-row { gap: 4px; }
+  .corner-img { width: 48px; height: 48px; }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --card-w: 62px;
+    --card-h: 87px;
+    --tableau-overlap: 18px;
+    --tableau-fan: 14px;
+  }
+  #hud h1 { font-size: 1rem; }
+  .hud-stat { padding: 3px 7px; font-size: .7rem; }
+  .hud-stat span { font-size: .9rem; }
+}
