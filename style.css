@@ -91,23 +91,6 @@ body {
 #btn-auto { background: linear-gradient(160deg, #7ecf7e, #3a8f3a); color: #001a00; }
 #btn-auto:disabled { opacity: .4; cursor: not-allowed; }
 
-/* ─── Decorative corners ────────────────────────────────────────── */
-#corner-decor {
-  position: fixed;
-  pointer-events: none;
-}
-.corner-img {
-  position: fixed;
-  width: 72px;
-  height: 72px;
-  opacity: .75;
-  object-fit: contain;
-}
-#decor-cat    { top: 6px;  left: 6px; }
-#decor-candle { top: 6px;  right: 6px; }
-#decor-plant  { bottom: 6px; left: 6px; }
-#decor-teacup { bottom: 6px; right: 6px; }
-
 /* ─── Play area ─────────────────────────────────────────────────── */
 #play-area {
   display: flex;
@@ -294,40 +277,113 @@ body {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.6);
+  background: rgba(14, 10, 6, .68);
   z-index: 2000;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  gap: 16px;
 }
 #win-overlay.visible { display: flex; }
 
+/* Card rain — sits inside overlay, behind the panel */
+#win-rain {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+.rain-card {
+  position: absolute;
+  top: -140px;
+  width: var(--card-w);
+  height: var(--card-h);
+  background-image: url('assets/Card_Back.png');
+  background-size: 100% 100%;
+  border-radius: var(--card-radius);
+  box-shadow: 0 4px 14px rgba(0,0,0,.45);
+  animation: rainFall linear both;
+}
+@keyframes rainFall {
+  from { transform: translateY(0)     rotate(var(--rain-rot-a)); opacity: 0; }
+  8%   { opacity: 1; }
+  88%  { opacity: 1; }
+  to   { transform: translateY(115vh) rotate(var(--rain-rot-b)); opacity: 0; }
+}
+
+/* Panel */
 #win-box {
-  background: linear-gradient(150deg, #fdf8ee, #f5e6c8);
-  border-radius: 16px;
-  padding: 32px 40px;
+  position: relative;
+  z-index: 2;
+  background: #fdf8ee;
+  border-radius: 18px;
+  padding: 0 0 28px;
   text-align: center;
-  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  min-width: 290px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.6), 0 0 0 1px rgba(200,168,75,.35);
+  overflow: hidden;
+}
+/* Blue accent bar matching card-back palette */
+.win-top-bar {
+  height: 7px;
+  background: linear-gradient(90deg, #3d5e8c, #6088be, #3d5e8c);
+  margin-bottom: 22px;
 }
 #win-box h2 {
-  font-size: 2rem;
-  color: #5a2d00;
-  margin-bottom: 8px;
+  font-size: 1.75rem;
+  color: #2c3a5a;
+  margin-bottom: 3px;
+  letter-spacing: .03em;
 }
-#win-box p { color: #6b4226; font-size: 1rem; margin-bottom: 20px; }
+.win-subtitle {
+  color: #c8a84b;
+  font-size: .8rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  margin-bottom: 22px;
+}
+#win-stats {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 0 22px 24px;
+}
+.win-stat {
+  flex: 1;
+  background: #f0e8d8;
+  border-radius: 10px;
+  padding: 10px 6px 8px;
+  border: 1px solid #ddd0b0;
+}
+.win-stat-val {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #2c3a5a;
+  line-height: 1.1;
+}
+.win-stat-label {
+  display: block;
+  font-size: .62rem;
+  color: #8a7a5a;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-top: 3px;
+}
 #btn-play-again {
   background: linear-gradient(160deg, #c8a84b, #a07830);
   color: #2c1a00;
   border: none;
   border-radius: 8px;
-  padding: 10px 28px;
+  padding: 11px 34px;
   font-size: 1rem;
   font-family: inherit;
   font-weight: bold;
   cursor: pointer;
-  box-shadow: 0 3px 8px rgba(0,0,0,.35);
+  box-shadow: 0 3px 10px rgba(0,0,0,.3);
+  letter-spacing: .03em;
+  transition: filter .15s;
 }
+#btn-play-again:active { filter: brightness(.85); }
 
 /* ─── Deal animation ─────────────────────────────────────────────── */
 @keyframes dealCard {
@@ -371,7 +427,6 @@ body {
   #app { padding: 8px 8px 4px; gap: 6px; }
   #top-row { gap: 5px; }
   #tableau-row { gap: 4px; }
-  .corner-img { width: 48px; height: 48px; }
 }
 
 @media (max-width: 480px) {

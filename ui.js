@@ -185,9 +185,16 @@ class SolitaireUI {
         <div id="tableau-row"></div>
       </div>
       <div id="win-overlay">
+        <div id="win-rain"></div>
         <div id="win-box">
-          <h2>You Win!</h2>
-          <p id="win-stats"></p>
+          <div class="win-top-bar"></div>
+          <h2>Congratulations!</h2>
+          <p class="win-subtitle">✦ &nbsp; You Won &nbsp; ✦</p>
+          <div id="win-stats">
+            <div class="win-stat"><span class="win-stat-val" id="win-score">0</span><span class="win-stat-label">Score</span></div>
+            <div class="win-stat"><span class="win-stat-val" id="win-moves">0</span><span class="win-stat-label">Moves</span></div>
+            <div class="win-stat"><span class="win-stat-val" id="win-time">0:00</span><span class="win-stat-label">Time</span></div>
+          </div>
           <button id="btn-play-again">Play Again</button>
         </div>
       </div>
@@ -216,13 +223,6 @@ class SolitaireUI {
       tableauRow.appendChild(col);
     }
 
-    // Decorative corner images
-    document.body.insertAdjacentHTML('beforeend', `
-      <img id="decor-cat"    class="corner-img" src="" alt="cat decoration">
-      <img id="decor-candle" class="corner-img" src="" alt="candle decoration">
-      <img id="decor-plant"  class="corner-img" src="" alt="plant decoration">
-      <img id="decor-teacup" class="corner-img" src="" alt="teacup decoration">
-    `);
   }
 
   _attachEvents() {
@@ -234,6 +234,7 @@ class SolitaireUI {
 
     document.getElementById('btn-play-again').addEventListener('click', () => {
       document.getElementById('win-overlay').classList.remove('visible');
+      document.getElementById('win-rain').innerHTML = '';
       this.clearSelection();
       this.game.deal();
       this.render(true);
@@ -391,9 +392,11 @@ class SolitaireUI {
       const state = this.game.getState();
       const m = Math.floor(state.elapsed / 60);
       const s = state.elapsed % 60;
-      document.getElementById('win-stats').textContent =
-        `Score: ${state.score} · Moves: ${state.moves} · Time: ${m}:${s.toString().padStart(2,'0')}`;
+      document.getElementById('win-score').textContent = state.score;
+      document.getElementById('win-moves').textContent = state.moves;
+      document.getElementById('win-time').textContent  = `${m}:${s.toString().padStart(2,'0')}`;
       document.getElementById('win-overlay').classList.add('visible');
+      this._startCardRain();
       return;
     }
     this.render(false);
@@ -707,6 +710,31 @@ class SolitaireUI {
     };
 
     step();
+  }
+
+  // ── Card rain on win ────────────────────────────────────────────
+  // Spawns 24 card-back divs with randomised positions, delays,
+  // durations, and rotation angles. They fall once then stop.
+
+  _startCardRain() {
+    const rain = document.getElementById('win-rain');
+    rain.innerHTML = '';
+    const COUNT = 24;
+    for (let i = 0; i < COUNT; i++) {
+      const card = document.createElement('div');
+      card.className = 'rain-card';
+      const left   = (Math.random() * 112) - 6;        // −6 % … 106 %
+      const delay  = (Math.random() * 2.8).toFixed(2);
+      const dur    = (1.6 + Math.random() * 1.8).toFixed(2);
+      const rotA   = ((Math.random() - 0.5) * 44).toFixed(1);
+      const rotB   = (parseFloat(rotA) + (Math.random() - 0.5) * 70).toFixed(1);
+      card.style.left = `${left.toFixed(1)}%`;
+      card.style.animationDuration = `${dur}s`;
+      card.style.animationDelay    = `${delay}s`;
+      card.style.setProperty('--rain-rot-a', `${rotA}deg`);
+      card.style.setProperty('--rain-rot-b', `${rotB}deg`);
+      rain.appendChild(card);
+    }
   }
 
   // ── Draw animation ──────────────────────────────────────────────
