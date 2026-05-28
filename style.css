@@ -74,7 +74,7 @@ body {
 }
 .hud-stat span { display: block; font-size: 1rem; font-weight: bold; }
 
-#btn-new-game, #btn-auto {
+#btn-new-game, #btn-auto, #btn-undo {
   background: linear-gradient(160deg, #c8a84b, #a07830);
   color: #2c1a00;
   border: none;
@@ -87,9 +87,9 @@ body {
   box-shadow: 0 2px 6px rgba(0,0,0,.4);
   transition: filter .15s;
 }
-#btn-new-game:active, #btn-auto:active { filter: brightness(.85); }
+#btn-new-game:active, #btn-auto:active, #btn-undo:active { filter: brightness(.85); }
 #btn-auto { background: linear-gradient(160deg, #7ecf7e, #3a8f3a); color: #001a00; }
-#btn-auto:disabled { opacity: .4; cursor: not-allowed; }
+#btn-auto:disabled, #btn-undo:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ─── Play area ─────────────────────────────────────────────────── */
 #play-area {

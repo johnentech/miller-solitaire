@@ -173,6 +173,7 @@ class SolitaireUI {
         <div class="hud-stat">Moves<span id="moves-val">0</span></div>
         <div class="hud-stat">Time<span id="time-val">0:00</span></div>
         <button id="btn-auto">Auto-Complete</button>
+        <button id="btn-undo" disabled>↩ Undo</button>
         <button id="btn-new-game">New Game</button>
       </div>
       <div id="play-area">
@@ -244,6 +245,12 @@ class SolitaireUI {
       if (this.game.canAutoComplete()) {
         this._runAutoComplete();
       }
+    });
+
+    document.getElementById('btn-undo').addEventListener('click', () => {
+      if (this._animating) return;
+      this.clearSelection();
+      this.game.undo();
     });
 
     document.getElementById('stock').addEventListener('click', () => {
@@ -380,6 +387,7 @@ class SolitaireUI {
 
   _updateAutoBtn(state) {
     document.getElementById('btn-auto').disabled = !this.game.canAutoComplete();
+    document.getElementById('btn-undo').disabled = !this.game.canUndo();
   }
 
   onStateChange(event) {

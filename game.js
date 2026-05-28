@@ -60,6 +60,7 @@ class SolitaireGame {
     this.moves = 0;
     this.elapsed = 0;
     this.startTime = null;
+    this.history = [];
 
     const deck = shuffle(createDeck());
     this.tableau = Array.from({ length: 7 }, () => []);
@@ -110,12 +111,40 @@ class SolitaireGame {
     if (this.onSound) this.onSound(name);
   }
 
+  _saveHistory() {
+    this.history.push({
+      tableau:    this.tableau.map(col => col.map(c => ({ ...c }))),
+      foundation: this.foundation.map(f   => f.map(c   => ({ ...c }))),
+      stock:      this.stock.map(c => ({ ...c })),
+      waste:      this.waste.map(c => ({ ...c })),
+      score:      this.score,
+      moves:      this.moves,
+    });
+    if (this.history.length > 3) this.history.shift();
+  }
+
+  canUndo() { return this.history.length > 0; }
+
+  undo() {
+    if (!this.canUndo()) return false;
+    const snap = this.history.pop();
+    this.tableau    = snap.tableau;
+    this.foundation = snap.foundation;
+    this.stock      = snap.stock;
+    this.waste      = snap.waste;
+    this.score      = Math.max(0, snap.score - 5);
+    this.moves      = snap.moves;
+    this._notify('undo');
+    return true;
+  }
+
   // Draw from stock to waste
   drawStock() {
     this.startTimer();
     if (this.stock.length === 0) {
       if (this.waste.length === 0) return false;
       // Recycle waste -> stock
+      this._saveHistory();
       this._addScore(-20);
       this.stock = this.waste.reverse().map(c => ({ ...c, faceUp: false }));
       this.waste = [];
@@ -123,6 +152,7 @@ class SolitaireGame {
       this._notify('recycle');
       return true;
     }
+    this._saveHistory();
     const card = this.stock.pop();
     card.faceUp = true;
     this.waste.push(card);
@@ -139,6 +169,7 @@ class SolitaireGame {
     if (targetType === 'foundation') {
       const found = this.foundation[targetIndex];
       if (!canPlaceOnFoundation(card, found)) return false;
+      this._saveHistory();
       this.waste.pop();
       found.push(card);
       this._addScore(10);
@@ -152,6 +183,7 @@ class SolitaireGame {
     if (targetType === 'tableau') {
       const pile = this.tableau[targetIndex];
       if (!canPlaceOnTableau(card, pile)) return false;
+      this._saveHistory();
       this.waste.pop();
       pile.push(card);
       this._sound('place');
@@ -170,6 +202,7 @@ class SolitaireGame {
     if (stack.length === 0 || !stack[0].faceUp) return false;
     if (!canPlaceOnTableau(stack[0], toPile)) return false;
 
+    this._saveHistory();
     this.startTimer();
     fromPile.splice(cardIndex);
     toPile.push(...stack);
@@ -196,6 +229,7 @@ class SolitaireGame {
     const found = this.foundation[foundationIndex];
     if (!canPlaceOnFoundation(card, found)) return false;
 
+    this._saveHistory();
     this.startTimer();
     pile.pop();
     found.push(card);
