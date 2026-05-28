@@ -742,144 +742,172 @@ class SolitaireUI {
     step();
   }
 
-  // ── Stock draw animation ────────────────────────────────────────
-  // Lifts the top stock card, flies it to the waste slot, flips it
-  // face-up mid-travel. State update happens only after anim ends.
+  // ── Draw animation ──────────────────────────────────────────────
+  // Creates a ghost card at the stock position, slides it to the
+  // waste position, and flips it face-up mid-travel using CSS
+  // transitions + a transitionend-triggered face swap.
+  // State is only updated after the animation completes.
 
   _animateDraw() {
     this._animating = true;
-    this._setStockPointerEvents('none');
-
     const stockEl = document.getElementById('stock');
     const wasteEl = document.getElementById('waste');
+    stockEl.style.pointerEvents = 'none';
+    wasteEl.style.pointerEvents = 'none';
+
     const stockRect = stockEl.getBoundingClientRect();
     const wasteRect = wasteEl.getBoundingClientRect();
+    const card      = this.game.stock[this.game.stock.length - 1];
 
-    const card = this.game.stock[this.game.stock.length - 1];
     const DURATION = 300;
+    const HALF     = DURATION / 2;
     const dx = wasteRect.left - stockRect.left;
     const dy = wasteRect.top  - stockRect.top;
 
-    // Flying card starts face-down (showing the card back)
     const flyCard = buildCardEl({ ...card, faceUp: false });
-    flyCard.style.cssText = `
-      position:fixed; z-index:9999;
-      left:${stockRect.left}px; top:${stockRect.top}px;
-      pointer-events:none; will-change:transform;
-    `;
+    const inner   = flyCard.querySelector('.card-inner');
+    const backEl  = flyCard.querySelector('.card-back');
+    const faceEl  = flyCard.querySelector('.card-face');
+
+    // Override the class-level transition on card-inner so it doesn't
+    // interfere when we set our own transition below.
+    inner.style.transition = 'none';
+
+    flyCard.style.position      = 'fixed';
+    flyCard.style.left          = `${stockRect.left}px`;
+    flyCard.style.top           = `${stockRect.top}px`;
+    flyCard.style.zIndex        = '9999';
+    flyCard.style.pointerEvents = 'none';
+    flyCard.style.margin        = '0';
     document.body.appendChild(flyCard);
 
-    // Travel: lift slightly in the middle, land on waste
-    flyCard.animate([
-      { transform: 'translate(0,0) scale(1)' },
-      { transform: `translate(${dx * 0.4}px,${dy * 0.4 - 10}px) scale(1.08)`, offset: 0.3 },
-      { transform: `translate(${dx}px,${dy}px) scale(1)` },
-    ], { duration: DURATION, easing: 'ease-in-out', fill: 'forwards' });
+    // Two rAFs ensure the browser paints the card at its start position
+    // before we set the transition — otherwise it skips straight to the end.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      // ── Travel ──────────────────────────────────────────────
+      flyCard.style.transition = `transform ${DURATION}ms ease-in-out`;
+      flyCard.style.transform  = `translate(${dx}px, ${dy}px)`;
 
-    // Flip: rotate 0→90° (back visible), swap faces, rotate −90→0° (face visible)
-    const inner = flyCard.querySelector('.card-inner');
-    const backEl = flyCard.querySelector('.card-back');
-    const faceEl = flyCard.querySelector('.card-face');
+      // ── Flip phase 1: back rotates 0° → 90° (squishes to edge) ──
+      inner.style.transition = `transform ${HALF}ms ease-in`;
+      inner.style.transform  = 'rotateY(90deg)';
 
-    const half1 = inner.animate([
-      { transform: 'rotateY(0deg)' },
-      { transform: 'rotateY(90deg)' },
-    ], { duration: DURATION / 2, easing: 'ease-in', fill: 'forwards' });
+      // ── Flip phase 2: fires exactly when phase 1 ends ────────
+      inner.addEventListener('transitionend', function onEdge() {
+        inner.removeEventListener('transitionend', onEdge);
+        // Swap to face side while card is invisible (edge-on at 90°)
+        backEl.style.display = 'none';
+        faceEl.style.display = '';
+        // Jump instantly to −90° (still edge-on, now face side is "behind")
+        inner.style.transition = 'none';
+        inner.style.transform  = 'rotateY(-90deg)';
+        void inner.offsetWidth;            // force reflow so jump commits
+        // Transition from −90° → 0°: face fans out into view
+        inner.style.transition = `transform ${HALF}ms ease-out`;
+        inner.style.transform  = 'rotateY(0deg)';
+      });
+    }));
 
-    half1.onfinish = () => {
-      backEl.style.display = 'none';
-      faceEl.style.display = '';
-      inner.animate([
-        { transform: 'rotateY(-90deg)' },
-        { transform: 'rotateY(0deg)' },
-      ], { duration: DURATION / 2, easing: 'ease-out', fill: 'forwards' });
-    };
-
+    // Remove ghost and commit state after full animation
     setTimeout(() => {
       flyCard.remove();
-      this.game.drawStock();          // state update → re-render
-      this._setStockPointerEvents('');
+      this.game.drawStock();           // triggers re-render via onStateChange
+      stockEl.style.pointerEvents = '';
+      wasteEl.style.pointerEvents = '';
       this._animating = false;
-    }, DURATION + 30);
+    }, DURATION + 80);
   }
 
-  // ── Waste recycle animation ─────────────────────────────────────
-  // Cascades up to 5 ghost cards from waste back to stock, each
-  // flipping face-down mid-travel. Last card lands with a thump.
+  // ── Recycle animation ────────────────────────────────────────────
+  // Cascades up to 5 ghost cards from waste back to stock with 40ms
+  // stagger. The visible top card flips face-down mid-travel.
+  // Shuffle sound plays at animation start, not at state-commit time.
 
   _animateRecycle() {
     this._animating = true;
-    this._setStockPointerEvents('none');
-
     const stockEl = document.getElementById('stock');
     const wasteEl = document.getElementById('waste');
+    stockEl.style.pointerEvents = 'none';
+    wasteEl.style.pointerEvents = 'none';
+
     const stockRect = stockEl.getBoundingClientRect();
     const wasteRect = wasteEl.getBoundingClientRect();
 
-    const waste = this.game.waste;
-    const numCards  = Math.min(waste.length, 5);
-    const STAGGER   = 40;   // ms between each card launch
-    const PER_CARD  = 280;  // ms each card takes to travel
+    const STAGGER  = 40;
+    const PER_CARD = 280;
     const dx = stockRect.left - wasteRect.left;
     const dy = stockRect.top  - wasteRect.top;
 
+    // Play shuffle now (visually in sync) and suppress the duplicate
+    // that game.drawStock() fires when it commits the recycle.
+    this.sound.shuffle();
+    const origOnSound = this.game.onSound;
+    this.game.onSound = (name) => { if (name !== 'shuffle') origOnSound(name); };
+
+    const waste    = this.game.waste;
+    const numCards = Math.min(waste.length, 5);
+
     for (let i = 0; i < numCards; i++) {
-      // Card 0 is the visible face-up top; the rest are face-down ghosts
-      const isTop = i === 0;
+      const isTop    = i === 0;
       const cardData = isTop
         ? { ...waste[waste.length - 1], faceUp: true }
-        : { suit: '♠', rank: 'A', faceUp: false, id: `__ghost${i}__` };
+        : { suit: '♠', rank: 'A', faceUp: false, id: `__ghost${i}` };
 
       setTimeout(() => {
         const flyCard = buildCardEl(cardData);
-        flyCard.style.cssText = `
-          position:fixed; z-index:${9999 - i};
-          left:${wasteRect.left}px; top:${wasteRect.top}px;
-          pointer-events:none; will-change:transform;
-        `;
+        const inner   = flyCard.querySelector('.card-inner');
+
+        inner.style.transition = 'none'; // suppress class-level transition
+
+        flyCard.style.position      = 'fixed';
+        flyCard.style.left          = `${wasteRect.left}px`;
+        flyCard.style.top           = `${wasteRect.top}px`;
+        flyCard.style.zIndex        = `${9999 - i}`;
+        flyCard.style.pointerEvents = 'none';
+        flyCard.style.margin        = '0';
         document.body.appendChild(flyCard);
 
-        // Travel: gentle arc toward the stock pile
-        flyCard.animate([
-          { transform: 'translate(0,0) scale(1)' },
-          { transform: `translate(${dx*.45}px,${dy*.45-6}px) scale(1.04)`, offset: 0.35 },
-          { transform: `translate(${dx}px,${dy}px) scale(1)` },
-        ], { duration: PER_CARD, easing: 'ease-in', fill: 'forwards' });
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          // Travel: slide from waste to stock
+          flyCard.style.transition = `transform ${PER_CARD}ms ease-in`;
+          flyCard.style.transform  = `translate(${dx}px, ${dy}px)`;
 
-        // Flip face→back for the top card; ghost cards are already face-down
-        if (isTop) {
-          const inner  = flyCard.querySelector('.card-inner');
-          const faceEl = flyCard.querySelector('.card-face');
-          const backEl = flyCard.querySelector('.card-back');
+          // Only the face-up top card needs to flip during travel
+          if (isTop) {
+            const faceEl = flyCard.querySelector('.card-face');
+            const backEl = flyCard.querySelector('.card-back');
+            const HALF   = Math.round(PER_CARD * 0.35);
 
-          // Start flip at 20% into travel so it reads as "turning over while moving"
-          const half1 = inner.animate([
-            { transform: 'rotateY(0deg)' },
-            { transform: 'rotateY(90deg)' },
-          ], { duration: PER_CARD * 0.4, delay: PER_CARD * 0.2,
-               easing: 'ease-in', fill: 'forwards' });
+            // Delay flip start to ~20% into the travel
+            setTimeout(() => {
+              inner.style.transition = `transform ${HALF}ms ease-in`;
+              inner.style.transform  = 'rotateY(90deg)';
 
-          half1.onfinish = () => {
-            faceEl.style.display = 'none';
-            backEl.style.display = '';
-            inner.animate([
-              { transform: 'rotateY(-90deg)' },
-              { transform: 'rotateY(0deg)' },
-            ], { duration: PER_CARD * 0.4, easing: 'ease-out', fill: 'forwards' });
-          };
-        }
+              inner.addEventListener('transitionend', function onEdge() {
+                inner.removeEventListener('transitionend', onEdge);
+                faceEl.style.display = 'none';
+                backEl.style.display = '';
+                inner.style.transition = 'none';
+                inner.style.transform  = 'rotateY(-90deg)';
+                void inner.offsetWidth;
+                inner.style.transition = `transform ${HALF}ms ease-out`;
+                inner.style.transform  = 'rotateY(0deg)';
+              });
+            }, PER_CARD * 0.2);
+          }
+        }));
 
-        setTimeout(() => flyCard.remove(), PER_CARD + 20);
+        setTimeout(() => flyCard.remove(), PER_CARD + 60);
       }, i * STAGGER);
     }
 
-    // After all cards have landed: commit state, then thump the stock pile
+    // After the last card lands: commit state, then bounce the stock pile
     const totalDuration = (numCards - 1) * STAGGER + PER_CARD;
 
     setTimeout(() => {
-      this.game.drawStock();          // recycles waste→stock, re-render fires
+      this.game.drawStock();           // recycles waste→stock, fires re-render
+      this.game.onSound = origOnSound;
 
-      // Brief settle bounce on the newly rendered stock card
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const stockCard = stockEl.querySelector('.card-container');
         if (stockCard) {
@@ -887,16 +915,11 @@ class SolitaireUI {
           stockCard.addEventListener('animationend',
             () => stockCard.classList.remove('card-settle'), { once: true });
         }
-        this._setStockPointerEvents('');
+        stockEl.style.pointerEvents = '';
+        wasteEl.style.pointerEvents = '';
         this._animating = false;
       }));
-    }, totalDuration + 40);
-  }
-
-  // Helper: lock/unlock pointer events on both stock and waste
-  _setStockPointerEvents(value) {
-    document.getElementById('stock').style.pointerEvents = value;
-    document.getElementById('waste').style.pointerEvents = value;
+    }, totalDuration + 80);
   }
 }
 
