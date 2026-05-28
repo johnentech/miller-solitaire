@@ -184,6 +184,7 @@ class SolitaireUI {
     this.sound = new SoundEngine();
     this.dragState = null;
     this.selected = null; // { type, colIndex, cardIndex } for tap-to-move
+    this._animating = false;
 
     game.onStateChange = (event) => this.onStateChange(event);
     game.onSound = (name) => {
@@ -278,8 +279,15 @@ class SolitaireUI {
     });
 
     document.getElementById('stock').addEventListener('click', () => {
+      if (this._animating) return;
       this.clearSelection();
-      this.game.drawStock();
+      const state = this.game.getState();
+      if (state.stock.length === 0 && state.waste.length === 0) return;
+      if (state.stock.length === 0) {
+        this._animateRecycle();
+      } else {
+        this._animateDraw();
+      }
     });
 
     // Foundation clicks (tap-to-move from waste)
@@ -732,6 +740,163 @@ class SolitaireUI {
     };
 
     step();
+  }
+
+  // ── Stock draw animation ────────────────────────────────────────
+  // Lifts the top stock card, flies it to the waste slot, flips it
+  // face-up mid-travel. State update happens only after anim ends.
+
+  _animateDraw() {
+    this._animating = true;
+    this._setStockPointerEvents('none');
+
+    const stockEl = document.getElementById('stock');
+    const wasteEl = document.getElementById('waste');
+    const stockRect = stockEl.getBoundingClientRect();
+    const wasteRect = wasteEl.getBoundingClientRect();
+
+    const card = this.game.stock[this.game.stock.length - 1];
+    const DURATION = 300;
+    const dx = wasteRect.left - stockRect.left;
+    const dy = wasteRect.top  - stockRect.top;
+
+    // Flying card starts face-down (showing the card back)
+    const flyCard = buildCardEl({ ...card, faceUp: false });
+    flyCard.style.cssText = `
+      position:fixed; z-index:9999;
+      left:${stockRect.left}px; top:${stockRect.top}px;
+      pointer-events:none; will-change:transform;
+    `;
+    document.body.appendChild(flyCard);
+
+    // Travel: lift slightly in the middle, land on waste
+    flyCard.animate([
+      { transform: 'translate(0,0) scale(1)' },
+      { transform: `translate(${dx * 0.4}px,${dy * 0.4 - 10}px) scale(1.08)`, offset: 0.3 },
+      { transform: `translate(${dx}px,${dy}px) scale(1)` },
+    ], { duration: DURATION, easing: 'ease-in-out', fill: 'forwards' });
+
+    // Flip: rotate 0→90° (back visible), swap faces, rotate −90→0° (face visible)
+    const inner = flyCard.querySelector('.card-inner');
+    const backEl = flyCard.querySelector('.card-back');
+    const faceEl = flyCard.querySelector('.card-face');
+
+    const half1 = inner.animate([
+      { transform: 'rotateY(0deg)' },
+      { transform: 'rotateY(90deg)' },
+    ], { duration: DURATION / 2, easing: 'ease-in', fill: 'forwards' });
+
+    half1.onfinish = () => {
+      backEl.style.display = 'none';
+      faceEl.style.display = '';
+      inner.animate([
+        { transform: 'rotateY(-90deg)' },
+        { transform: 'rotateY(0deg)' },
+      ], { duration: DURATION / 2, easing: 'ease-out', fill: 'forwards' });
+    };
+
+    setTimeout(() => {
+      flyCard.remove();
+      this.game.drawStock();          // state update → re-render
+      this._setStockPointerEvents('');
+      this._animating = false;
+    }, DURATION + 30);
+  }
+
+  // ── Waste recycle animation ─────────────────────────────────────
+  // Cascades up to 5 ghost cards from waste back to stock, each
+  // flipping face-down mid-travel. Last card lands with a thump.
+
+  _animateRecycle() {
+    this._animating = true;
+    this._setStockPointerEvents('none');
+
+    const stockEl = document.getElementById('stock');
+    const wasteEl = document.getElementById('waste');
+    const stockRect = stockEl.getBoundingClientRect();
+    const wasteRect = wasteEl.getBoundingClientRect();
+
+    const waste = this.game.waste;
+    const numCards  = Math.min(waste.length, 5);
+    const STAGGER   = 40;   // ms between each card launch
+    const PER_CARD  = 280;  // ms each card takes to travel
+    const dx = stockRect.left - wasteRect.left;
+    const dy = stockRect.top  - wasteRect.top;
+
+    for (let i = 0; i < numCards; i++) {
+      // Card 0 is the visible face-up top; the rest are face-down ghosts
+      const isTop = i === 0;
+      const cardData = isTop
+        ? { ...waste[waste.length - 1], faceUp: true }
+        : { suit: '♠', rank: 'A', faceUp: false, id: `__ghost${i}__` };
+
+      setTimeout(() => {
+        const flyCard = buildCardEl(cardData);
+        flyCard.style.cssText = `
+          position:fixed; z-index:${9999 - i};
+          left:${wasteRect.left}px; top:${wasteRect.top}px;
+          pointer-events:none; will-change:transform;
+        `;
+        document.body.appendChild(flyCard);
+
+        // Travel: gentle arc toward the stock pile
+        flyCard.animate([
+          { transform: 'translate(0,0) scale(1)' },
+          { transform: `translate(${dx*.45}px,${dy*.45-6}px) scale(1.04)`, offset: 0.35 },
+          { transform: `translate(${dx}px,${dy}px) scale(1)` },
+        ], { duration: PER_CARD, easing: 'ease-in', fill: 'forwards' });
+
+        // Flip face→back for the top card; ghost cards are already face-down
+        if (isTop) {
+          const inner  = flyCard.querySelector('.card-inner');
+          const faceEl = flyCard.querySelector('.card-face');
+          const backEl = flyCard.querySelector('.card-back');
+
+          // Start flip at 20% into travel so it reads as "turning over while moving"
+          const half1 = inner.animate([
+            { transform: 'rotateY(0deg)' },
+            { transform: 'rotateY(90deg)' },
+          ], { duration: PER_CARD * 0.4, delay: PER_CARD * 0.2,
+               easing: 'ease-in', fill: 'forwards' });
+
+          half1.onfinish = () => {
+            faceEl.style.display = 'none';
+            backEl.style.display = '';
+            inner.animate([
+              { transform: 'rotateY(-90deg)' },
+              { transform: 'rotateY(0deg)' },
+            ], { duration: PER_CARD * 0.4, easing: 'ease-out', fill: 'forwards' });
+          };
+        }
+
+        setTimeout(() => flyCard.remove(), PER_CARD + 20);
+      }, i * STAGGER);
+    }
+
+    // After all cards have landed: commit state, then thump the stock pile
+    const totalDuration = (numCards - 1) * STAGGER + PER_CARD;
+
+    setTimeout(() => {
+      this.game.drawStock();          // recycles waste→stock, re-render fires
+
+      // Brief settle bounce on the newly rendered stock card
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const stockCard = stockEl.querySelector('.card-container');
+        if (stockCard) {
+          stockCard.classList.add('card-settle');
+          stockCard.addEventListener('animationend',
+            () => stockCard.classList.remove('card-settle'), { once: true });
+        }
+        this._setStockPointerEvents('');
+        this._animating = false;
+      }));
+    }, totalDuration + 40);
+  }
+
+  // Helper: lock/unlock pointer events on both stock and waste
+  _setStockPointerEvents(value) {
+    document.getElementById('stock').style.pointerEvents = value;
+    document.getElementById('waste').style.pointerEvents = value;
   }
 }
 
