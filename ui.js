@@ -152,6 +152,7 @@ class SolitaireUI {
     this.dragState = null;
     this.selected = null; // { type, colIndex, cardIndex } for tap-to-move
     this._animating = false;
+    this._lastTap   = null; // { cardId, time } for double-tap detection
 
     game.onStateChange = (event) => this.onStateChange(event);
     game.onSound = (name) => {
@@ -435,13 +436,8 @@ class SolitaireUI {
     const source = cardEl.dataset.source;
 
     if (source === 'waste') {
-      // Try auto-move to foundation, then mark selected
-      const moved = this.game.autoMoveToFoundation(
-        this.game.waste[this.game.waste.length - 1], 'waste', 0);
-      if (!moved) {
-        // Select it for tap-to-tableau
-        this._setSelected({ type: 'waste' }, cardEl);
-      }
+      // Single tap selects for tap-to-move; double-tap animates to foundation
+      this._setSelected({ type: 'waste' }, cardEl);
       return;
     }
 
@@ -479,16 +475,8 @@ class SolitaireUI {
         return;
       }
 
-      // Try auto-move top card to foundation
-      if (idx === pile.length - 1) {
-        const moved = this.game.autoMoveToFoundation(card, 'tableau', col);
-        if (!moved) {
-          this._setSelected({ type: 'tableau', colIndex: col, cardIndex: idx }, cardEl);
-        }
-      } else {
-        // Select the sub-stack
-        this._setSelected({ type: 'tableau', colIndex: col, cardIndex: idx }, cardEl);
-      }
+      // Single tap selects card/stack; double-tap animates top card to foundation
+      this._setSelected({ type: 'tableau', colIndex: col, cardIndex: idx }, cardEl);
       return;
     }
 
@@ -508,6 +496,80 @@ class SolitaireUI {
     document.querySelectorAll('.card-container.selected').forEach(el => {
       el.classList.remove('selected');
     });
+  }
+
+  // ── Double-tap: animated fly to foundation ───────────────────────
+
+  _handleDoubleTap(cardEl) {
+    if (this._animating) return;
+    const source = cardEl.dataset.source;
+    let card, sourceType, sourceCol;
+
+    if (source === 'waste') {
+      if (!this.game.waste.length) return;
+      card       = this.game.waste[this.game.waste.length - 1];
+      sourceType = 'waste';
+      sourceCol  = -1;
+    } else if (source === 'tableau') {
+      const col  = parseInt(cardEl.dataset.colIndex);
+      const idx  = parseInt(cardEl.dataset.cardIndex);
+      const pile = this.game.tableau[col];
+      card = pile[idx];
+      if (!card || !card.faceUp || idx !== pile.length - 1) return;
+      sourceType = 'tableau';
+      sourceCol  = col;
+    } else return;
+
+    const foundIdx = this._findFoundationFor(card);
+    if (foundIdx === -1) return;          // no valid foundation yet
+
+    this.clearSelection();
+    this._animateCardToFoundation(cardEl, card, sourceType, sourceCol, foundIdx);
+  }
+
+  _findFoundationFor(card) {
+    for (let i = 0; i < 4; i++) {
+      if (window.canPlaceOnFoundation(card, this.game.foundation[i])) return i;
+    }
+    return -1;
+  }
+
+  _animateCardToFoundation(cardEl, card, sourceType, sourceCol, foundIdx) {
+    this._animating = true;
+
+    const cardRect  = cardEl.getBoundingClientRect();
+    const foundEl   = document.getElementById(`foundation-${foundIdx}`);
+    const foundRect = foundEl.getBoundingClientRect();
+    const dx        = foundRect.left - cardRect.left;
+    const dy        = foundRect.top  - cardRect.top;
+    const DURATION  = 300;
+
+    // Ghost card flies from its current position to the foundation slot
+    const flyCard = buildCardEl({ ...card, faceUp: true });
+    flyCard.querySelector('.card-inner').style.transition = 'none';
+    flyCard.style.position      = 'fixed';
+    flyCard.style.left          = `${cardRect.left}px`;
+    flyCard.style.top           = `${cardRect.top}px`;
+    flyCard.style.zIndex        = '9999';
+    flyCard.style.pointerEvents = 'none';
+    flyCard.style.margin        = '0';
+    document.body.appendChild(flyCard);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      flyCard.style.transition = `transform ${DURATION}ms ease-in-out`;
+      flyCard.style.transform  = `translate(${dx}px, ${dy}px) scale(0.9)`;
+    }));
+
+    // At landing: remove ghost, commit state (which fires 'place' sound + re-render)
+    setTimeout(() => {
+      flyCard.remove();
+      if (sourceType === 'waste') {
+        this.game.playWasteCard('foundation', foundIdx);
+      } else {
+        this.game.moveTableauToFoundation(sourceCol, foundIdx);
+      }
+      this._animating = false;
+    }, DURATION + 50);
   }
 
   // ── Drag & drop ──────────────────────────────────────────────────
@@ -604,8 +666,17 @@ class SolitaireUI {
     }
 
     if (!ds.moved) {
-      // It was a tap
-      if (ds.cardEl.isConnected) this._handleCardTap(ds.cardEl);
+      // Detect double-tap: same card tapped twice within 350 ms
+      const now      = Date.now();
+      const cardId   = ds.cardEl.dataset.id;
+      const isDouble = this._lastTap &&
+                       this._lastTap.cardId === cardId &&
+                       now - this._lastTap.time < 350;
+      this._lastTap  = isDouble ? null : { cardId, time: now };
+      if (ds.cardEl.isConnected) {
+        if (isDouble) this._handleDoubleTap(ds.cardEl);
+        else          this._handleCardTap(ds.cardEl);
+      }
       return;
     }
 
