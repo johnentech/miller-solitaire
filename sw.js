@@ -1,4 +1,4 @@
-const CACHE = 'cottage-solitaire-v2';
+const CACHE = 'cottage-solitaire-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -6,6 +6,8 @@ const ASSETS = [
   './game.js',
   './ui.js',
   './manifest.json',
+  './assets/board2.png',
+  './assets/Card_Back.png',
 ];
 
 self.addEventListener('install', e => {

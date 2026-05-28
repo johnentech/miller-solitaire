@@ -1,37 +1,5 @@
 'use strict';
 
-/* ─── Card SVG back ────────────────────────────────────────────── */
-function cardBackSVG() {
-  return `<svg class="card-back-svg" viewBox="0 0 90 126" xmlns="http://www.w3.org/2000/svg">
-  <rect width="90" height="126" rx="8" fill="#1a3d1a"/>
-  <!-- outer border -->
-  <rect x="4" y="4" width="82" height="118" rx="6" fill="none" stroke="#c8a84b" stroke-width="1.5"/>
-  <!-- inner border -->
-  <rect x="8" y="8" width="74" height="110" rx="4" fill="none" stroke="#c8a84b" stroke-width=".8"/>
-  <!-- diagonal grid -->
-  <g stroke="#c8a84b" stroke-width=".6" opacity=".5">
-    <line x1="45" y1="8" x2="82" y2="63"/>
-    <line x1="45" y1="8" x2="8"  y2="63"/>
-    <line x1="45" y1="118" x2="82" y2="63"/>
-    <line x1="45" y1="118" x2="8"  y2="63"/>
-    <line x1="8"  y1="30" x2="82" y2="30"/>
-    <line x1="8"  y1="63" x2="82" y2="63"/>
-    <line x1="8"  y1="96" x2="82" y2="96"/>
-    <line x1="20" y1="8"  x2="20" y2="118"/>
-    <line x1="45" y1="8"  x2="45" y2="118"/>
-    <line x1="70" y1="8"  x2="70" y2="118"/>
-  </g>
-  <!-- center diamond -->
-  <polygon points="45,20 60,63 45,106 30,63" fill="none" stroke="#c8a84b" stroke-width="1.2"/>
-  <polygon points="45,32 54,63 45,94 36,63" fill="#c8a84b" opacity=".15"/>
-  <!-- corner diamonds -->
-  <polygon points="14,14 20,22 14,30 8,22"  fill="#c8a84b" opacity=".7"/>
-  <polygon points="76,14 82,22 76,30 70,22" fill="#c8a84b" opacity=".7"/>
-  <polygon points="14,96 20,104 14,112 8,104"  fill="#c8a84b" opacity=".7"/>
-  <polygon points="76,96 82,104 76,112 70,104" fill="#c8a84b" opacity=".7"/>
-</svg>`;
-}
-
 /* ─── Card element builder ─────────────────────────────────────── */
 function buildCardEl(card) {
   const container = document.createElement('div');
@@ -43,7 +11,6 @@ function buildCardEl(card) {
 
   const back = document.createElement('div');
   back.className = 'card-back';
-  back.innerHTML = cardBackSVG();
 
   const isRed = card.suit === '♥' || card.suit === '♦';
   const face = document.createElement('div');
