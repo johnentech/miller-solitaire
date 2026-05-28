@@ -351,6 +351,12 @@ class SolitaireUI {
       const pile = state.tableau[col];
       let top = 0;
 
+      if (pile.length === 0) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'slot tableau-placeholder';
+        colEl.appendChild(placeholder);
+      }
+
       pile.forEach((card, idx) => {
         const cardEl = buildCardEl(card);
         cardEl.dataset.source = 'tableau';

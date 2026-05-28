@@ -156,6 +156,22 @@ body {
   pointer-events: none;
 }
 
+/* Tableau empty-column placeholder */
+.slot.tableau-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.slot.tableau-placeholder::after {
+  content: 'K';
+  font-size: 2rem;
+  font-weight: bold;
+  color: rgba(255,255,255,.15);
+  font-family: Georgia, serif;
+  pointer-events: none;
+}
+
 /* ─── Cards ─────────────────────────────────────────────────────── */
 .card-container {
   position: absolute;
