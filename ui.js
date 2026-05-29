@@ -59,7 +59,7 @@ const TableauReveal = (() => {
     wobble:       0,
     shadowGrow:   1.0,
     glow:         true,
-    glowRanks:    ['K', 'A'],
+    glowRanks:    [],           // empty = every revealed card gets the glow
     glowStrength: 0.85,
   };
   const EASING = {
@@ -120,7 +120,7 @@ const TableauReveal = (() => {
       { duration: dur * (CONFIG.feel === 'springy' ? 1.15 : 1), easing: ease.lift, fill: 'none' });
 
     // Warm glow on Kings & Aces
-    if (CONFIG.glow && CONFIG.glowRanks.includes(card.rank)) {
+    if (CONFIG.glow) {
       const glow = document.createElement('div');
       glow.className = 'reveal-glow';
       face.appendChild(glow);
@@ -333,9 +333,25 @@ class SolitaireUI {
 
   _attachEvents() {
     document.getElementById('btn-new-game').addEventListener('click', () => {
+      // Dismiss win overlay if showing
+      document.getElementById('win-overlay').classList.remove('visible');
+      document.getElementById('win-rain').innerHTML = '';
       this.clearSelection();
-      this.game.deal();
-      this.render(true);
+
+      // Instant wipe — clear every card element without animation
+      document.getElementById('stock').innerHTML = '';
+      document.getElementById('waste').innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        const fc = document.getElementById(`foundation-${i}`);
+        if (fc) { const cc = fc.querySelector('.card-container'); if (cc) cc.remove(); }
+      }
+      for (let col = 0; col < 7; col++) {
+        const tc = document.getElementById(`tableau-${col}`);
+        if (tc) tc.innerHTML = '';
+      }
+
+      // Brief pause so the cleared table feels intentional, then deal
+      setTimeout(() => this.game.deal(), 200);
     });
 
     document.getElementById('btn-play-again').addEventListener('click', () => {
