@@ -547,7 +547,7 @@ body {
   to   { transform: translate(0, 0) scale(1); opacity: 1; }
 }
 .card-container.dealing {
-  animation: dealCard .4s ease forwards;
+  animation: dealCard .4s ease both;
   z-index: 500;
 }
 
