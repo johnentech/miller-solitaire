@@ -552,8 +552,12 @@ class SolitaireUI {
     return -1;
   }
 
-  _animateCardToFoundation(cardEl, card, sourceType, sourceCol, foundIdx) {
+  _animateCardToFoundation(cardEl, card, sourceType, sourceCol, foundIdx, onComplete) {
     this._animating = true;
+
+    // Hide the original immediately — only the flying copy should be visible
+    cardEl.style.visibility = 'hidden';
+    cardEl.style.opacity    = '0';
 
     const cardRect  = cardEl.getBoundingClientRect();
     const foundEl   = document.getElementById(`foundation-${foundIdx}`);
@@ -587,6 +591,7 @@ class SolitaireUI {
         this.game.moveTableauToFoundation(sourceCol, foundIdx);
       }
       this._animating = false;
+      if (onComplete) onComplete();
     }, DURATION + 50);
   }
 
@@ -854,29 +859,42 @@ class SolitaireUI {
 
     const step = () => {
       const state = this.game.getState();
-      // Find a movable card
+
+      // Tableau first
       for (let col = 0; col < 7; col++) {
         const pile = state.tableau[col];
         if (pile.length === 0) continue;
         const card = pile[pile.length - 1];
         if (!card.faceUp) continue;
         for (let fi = 0; fi < 4; fi++) {
-          if (window.canPlaceOnFoundation
-            ? window.canPlaceOnFoundation(card, state.foundation[fi])
-            : true) {
-            if (this.game.moveTableauToFoundation(col, fi)) {
-              setTimeout(step, 120);
-              return;
+          if (window.canPlaceOnFoundation(card, state.foundation[fi])) {
+            const colEl  = document.getElementById(`tableau-${col}`);
+            const cardEl = colEl && colEl.querySelector(
+              `.card-container[data-card-index="${pile.length - 1}"]`
+            );
+            if (cardEl) {
+              // Hide this card immediately, fly it, chain to next step on landing
+              this._animateCardToFoundation(cardEl, card, 'tableau', col, fi, step);
+            } else if (this.game.moveTableauToFoundation(col, fi)) {
+              setTimeout(step, 120); // fallback if element not found
             }
+            return;
           }
         }
       }
-      // Check waste
+
+      // Waste
       if (state.waste.length > 0) {
         const card = state.waste[state.waste.length - 1];
         for (let fi = 0; fi < 4; fi++) {
-          if (this.game.playWasteCard('foundation', fi)) {
-            setTimeout(step, 120);
+          if (window.canPlaceOnFoundation(card, state.foundation[fi])) {
+            const wasteEl = document.getElementById('waste');
+            const cardEl  = wasteEl && wasteEl.querySelector('.card-container');
+            if (cardEl) {
+              this._animateCardToFoundation(cardEl, card, 'waste', -1, fi, step);
+            } else if (this.game.playWasteCard('foundation', fi)) {
+              setTimeout(step, 120);
+            }
             return;
           }
         }

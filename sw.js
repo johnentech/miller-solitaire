@@ -1,4 +1,4 @@
-const CACHE = 'cottage-solitaire-v13';
+const CACHE = 'cottage-solitaire-v14';
 const ASSETS = [
   './',
   './index.html',
