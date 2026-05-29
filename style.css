@@ -109,11 +109,11 @@ body {
 }
 #btn-new-game:active, #btn-auto:active, #btn-undo:active { filter: brightness(.85); }
 
-/* ── New Game — warm terracotta ─────────────────────────────────── */
+/* ── New Game — muted burgundy rose ─────────────────────────────── */
 #btn-new-game {
-  background: linear-gradient(160deg, #c4623a, #9e4422);
-  color: #fff5ee;
-  border-color: #d4784e;
+  background: linear-gradient(160deg, #9a4855, #742835);
+  color: #fff0ec;
+  border-color: #b05a65;
 }
 
 /* ── Undo — dusty rose ──────────────────────────────────────────── */
@@ -522,21 +522,21 @@ body {
 }
 #btn-stats-reset:active, #btn-stats-close:active { filter: brightness(.85); }
 #btn-stats-reset {
-  background: linear-gradient(160deg, #b87868, #925450);
+  background: linear-gradient(160deg, #8a4050, #6a2838);
   color: #fff0ec;
-  border-color: #cc8878;
+  border-color: #a05060;
 }
 #btn-stats-close {
-  background: linear-gradient(160deg, #c8a84b, #a07830);
-  color: #2c1a00;
-  border-color: #d4b852;
+  background: #f0e8d4;
+  color: #5a3a10;
+  border-color: #c8a04a;
 }
 
-/* Trophy HUD button */
+/* Trophy HUD button — same vivid gold as Auto-Complete */
 #btn-stats {
-  background: linear-gradient(160deg, #c8a84b, #a07830);
+  background: linear-gradient(160deg, #f0c03a, #c8880e);
   color: #2c1a00;
-  border-color: #d4b852;
+  border-color: #e8c040;
   padding: 6px 10px;
   font-size: 1rem;
 }
