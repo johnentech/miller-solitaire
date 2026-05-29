@@ -207,11 +207,12 @@ class SolitaireGame {
     fromPile.splice(cardIndex);
     toPile.push(...stack);
 
-    // Auto-flip revealed card
+    // Auto-flip revealed card (sound fires via TableauReveal animation callback)
     if (fromPile.length > 0 && !fromPile[fromPile.length - 1].faceUp) {
-      fromPile[fromPile.length - 1].faceUp = true;
+      const revealed = fromPile[fromPile.length - 1];
+      revealed.faceUp   = true;
+      revealed._reveal  = true;   // ui.js picks this up to play the flip animation
       this._addScore(5);
-      this._sound('flip');
     }
 
     this.moves++;
@@ -236,9 +237,10 @@ class SolitaireGame {
     this._addScore(10);
 
     if (pile.length > 0 && !pile[pile.length - 1].faceUp) {
-      pile[pile.length - 1].faceUp = true;
+      const revealed = pile[pile.length - 1];
+      revealed.faceUp  = true;
+      revealed._reveal = true;    // ui.js picks this up to play the flip animation
       this._addScore(5);
-      this._sound('flip');
     }
 
     this.moves++;

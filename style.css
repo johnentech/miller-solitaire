@@ -289,6 +289,17 @@ body {
   -webkit-user-drag: none;
 }
 
+/* ─── Tableau reveal glow (Kings & Aces only) ───────────────────── */
+.card-face .reveal-glow {
+  position: absolute; inset: -2px;
+  border-radius: var(--card-radius);
+  pointer-events: none; opacity: 0;
+  background: radial-gradient(70% 60% at 50% 42%,
+    rgba(255,221,150,.95) 0%, rgba(255,196,110,.45) 38%, rgba(255,180,90,0) 72%);
+  mix-blend-mode: screen;
+  box-shadow: 0 0 28px 6px rgba(255,198,110,.55);
+}
+
 /* ─── Card states ────────────────────────────────────────────────── */
 .card-container.dragging {
   opacity: .75;

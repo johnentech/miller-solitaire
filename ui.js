@@ -45,6 +45,109 @@ function buildCardEl(card) {
   return container;
 }
 
+/* ─── Tableau reveal-flip animation ───────────────────────────── */
+// Extracted from tableau-reveal-flip.js. Triggered only when a face-down
+// tableau card is revealed after a card above it is moved. CSS for the
+// glow overlay lives in style.css.
+const TableauReveal = (() => {
+  const CONFIG = {
+    feel:         'smooth',
+    duration:     440,
+    lift:         30,
+    pop:          1.05,
+    axis:         'Y',
+    wobble:       0,
+    shadowGrow:   1.0,
+    glow:         true,
+    glowRanks:    ['K', 'A'],
+    glowStrength: 0.85,
+  };
+  const EASING = {
+    smooth:  { rotate: 'cubic-bezier(.45,.05,.25,1)', lift: 'cubic-bezier(.4,0,.2,1)'    },
+    snappy:  { rotate: 'cubic-bezier(.2,.7,.2,1)',    lift: 'cubic-bezier(.16,1,.3,1)'   },
+    springy: { rotate: 'cubic-bezier(.34,1.3,.5,1)',  lift: 'cubic-bezier(.34,1.56,.64,1)' },
+  };
+  function liftKeyframes() {
+    const peak = `translateY(${-CONFIG.lift}px) scale(${CONFIG.pop}) rotateZ(${CONFIG.wobble}deg)`;
+    if (CONFIG.feel === 'springy') {
+      return [
+        { transform: 'translateY(0) scale(1) rotateZ(0deg)', offset: 0    },
+        { transform: peak,                                    offset: 0.45 },
+        { transform: `translateY(${CONFIG.lift * 0.10}px) scale(${1 - (CONFIG.pop - 1) * 0.45}) rotateZ(${-CONFIG.wobble * 0.4}deg)`, offset: 0.72 },
+        { transform: `translateY(${-CONFIG.lift * 0.05}px) scale(${1 + (CONFIG.pop - 1) * 0.18}) rotateZ(0deg)`,                     offset: 0.88 },
+        { transform: 'translateY(0) scale(1) rotateZ(0deg)', offset: 1    },
+      ];
+    }
+    return [
+      { transform: 'translateY(0) scale(1) rotateZ(0deg)' },
+      { transform: peak, offset: 0.5 },
+      { transform: 'translateY(0) scale(1) rotateZ(0deg)' },
+    ];
+  }
+  function play(cardEl, card, onFlipSound, onComplete) {
+    if (!cardEl) return;
+    const inner = cardEl.querySelector('.card-inner');
+    const back  = cardEl.querySelector('.card-back');
+    const face  = cardEl.querySelector('.card-face');
+    if (!inner || !back || !face) return;
+
+    const rot  = CONFIG.axis === 'X' ? 'rotateX' : 'rotateY';
+    const ease = EASING[CONFIG.feel] || EASING.smooth;
+    const dur  = CONFIG.duration;
+
+    // Start face-down even though game data is already faceUp:true
+    back.style.display   = '';
+    face.style.display   = '';
+    back.style.transform = `${rot}(0deg)`;
+    face.style.transform = `${rot}(180deg)`;
+    inner.style.transition = 'none';   // suppress .card-inner CSS transition
+    inner.style.transform  = `${rot}(0deg)`;
+    void cardEl.offsetWidth;           // commit face-down state before animating
+
+    // 3-D flip
+    inner.animate(
+      [{ transform: `${rot}(0deg)` }, { transform: `${rot}(180deg)` }],
+      { duration: dur, easing: ease.rotate, fill: 'forwards' }
+    );
+    // Lift / pop shadow
+    const s = CONFIG.shadowGrow, l = CONFIG.lift;
+    cardEl.animate([
+      { filter: `drop-shadow(0 3px 6px rgba(20,12,2,${0.38 * s}))` },
+      { filter: `drop-shadow(0 ${10 + l * 0.4}px ${14 + l * 0.5}px rgba(20,12,2,${0.30 * s}))`, offset: 0.5 },
+      { filter: `drop-shadow(0 3px 6px rgba(20,12,2,${0.38 * s}))` },
+    ], { duration: dur, easing: ease.lift, fill: 'none' });
+    cardEl.animate(liftKeyframes(),
+      { duration: dur * (CONFIG.feel === 'springy' ? 1.15 : 1), easing: ease.lift, fill: 'none' });
+
+    // Warm glow on Kings & Aces
+    if (CONFIG.glow && CONFIG.glowRanks.includes(card.rank)) {
+      const glow = document.createElement('div');
+      glow.className = 'reveal-glow';
+      face.appendChild(glow);
+      const g = CONFIG.glowStrength;
+      const a = glow.animate([
+        { opacity: 0, offset: 0    }, { opacity: 0,       offset: 0.5  },
+        { opacity: g, offset: 0.72 }, { opacity: g * 0.5, offset: 0.85 },
+        { opacity: 0, offset: 1    },
+      ], { duration: dur + 320, easing: 'ease-out', fill: 'forwards' });
+      a.onfinish = () => glow.remove();
+    }
+
+    // Fire the flip sound at the edge-on moment (~halfway through rotation)
+    if (typeof onFlipSound === 'function') setTimeout(onFlipSound, dur * 0.42);
+
+    // Settle: restore inline styles so normal rendering can take over
+    const total = dur * (CONFIG.feel === 'springy' ? 1.15 : 1) + 40;
+    setTimeout(() => {
+      inner.style.transition = '';
+      inner.style.transform  = '';
+      back.style.display     = 'none';
+      if (typeof onComplete === 'function') onComplete();
+    }, total);
+  }
+  return { play, CONFIG };
+})();
+
 /* ─── Sound engine ─────────────────────────────────────────────── */
 class SoundEngine {
   constructor() {
@@ -381,6 +484,12 @@ class SolitaireUI {
         }
 
         colEl.appendChild(cardEl);
+
+        // Tableau reveal flip — only when game.js flagged this card as just revealed
+        if (card._reveal) {
+          card._reveal = false;
+          TableauReveal.play(cardEl, card, () => this.sound.flip());
+        }
 
         if (!card.faceUp) {
           top += parseInt(getComputedStyle(document.documentElement)
