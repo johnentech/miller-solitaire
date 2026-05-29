@@ -23,7 +23,9 @@ html, body {
   font-family: 'Georgia', serif;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none; /* suppress iOS long-press callout */
   touch-action: none;
+  overscroll-behavior: none;   /* prevent pull-to-refresh */
 }
 
 /* ─── Illustrated tabletop background ──────────────────────────── */
