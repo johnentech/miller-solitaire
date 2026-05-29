@@ -12,14 +12,15 @@ function buildCardEl(card) {
   const back = document.createElement('div');
   back.className = 'card-back';
 
-  const isRed = card.suit === '♥' || card.suit === '♦';
+  const SUIT_NAME = { '♠': 'spades', '♣': 'clubs', '♥': 'hearts', '♦': 'diamonds' };
   const face = document.createElement('div');
-  face.className = `card-face ${isRed ? 'red' : 'black'}`;
-  face.innerHTML = `
-    <div class="rank-suit-top"><span>${card.rank}</span><span>${card.suit}</span></div>
-    <div class="suit-center">${card.suit}</div>
-    <div class="rank-suit-bottom"><span>${card.rank}</span><span>${card.suit}</span></div>
-  `;
+  face.className = 'card-face';
+  const img = document.createElement('img');
+  img.src = `assets/cards/${SUIT_NAME[card.suit]}_${card.rank}.png`;
+  img.alt = `${card.rank} of ${SUIT_NAME[card.suit]}`;
+  img.className = 'card-img';
+  img.draggable = false;
+  face.appendChild(img);
 
   inner.appendChild(back);
   inner.appendChild(face);

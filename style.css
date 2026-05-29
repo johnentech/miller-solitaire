@@ -231,48 +231,21 @@ body {
 /* ─── Card face ─────────────────────────────────────────────────── */
 .card-face {
   background: var(--cream);
-  display: flex;
-  flex-direction: column;
-  padding: 5px 6px;
+  padding: 0;
   overflow: hidden;
 }
 
-.card-face .rank-suit-top {
-  font-size: .85rem;
-  font-weight: bold;
-  line-height: 1.1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+.card-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: var(--card-radius);
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }
-
-.card-face .rank-suit-bottom {
-  font-size: .85rem;
-  font-weight: bold;
-  line-height: 1.1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  transform: rotate(180deg);
-  margin-top: auto;
-}
-
-.card-face .suit-center {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.7rem;
-  line-height: 1;
-}
-
-.card-face.red .rank-suit-top,
-.card-face.red .rank-suit-bottom,
-.card-face.red .suit-center { color: var(--red-muted); }
-
-.card-face.black .rank-suit-top,
-.card-face.black .rank-suit-bottom,
-.card-face.black .suit-center { color: var(--black-soft); }
 
 /* ─── Card states ────────────────────────────────────────────────── */
 .card-container.dragging {
