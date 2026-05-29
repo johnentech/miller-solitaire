@@ -293,6 +293,11 @@ class SolitaireUI {
     this._renderFoundations(state);
     this._renderTableau(state, animate);
     this._updateAutoBtn(state);
+    // If a drag is in progress the DOM was just rebuilt — re-hide source cards
+    // immediately so the player never sees them reappear mid-drag.
+    if (this.dragState && this.dragState.moved) {
+      this.dragState.hiddenEls = this._hideDraggedCards(this.dragState);
+    }
   }
 
   _renderHUD(state) {
@@ -413,6 +418,12 @@ class SolitaireUI {
       document.getElementById('win-time').textContent  = `${m}:${s.toString().padStart(2,'0')}`;
       document.getElementById('win-overlay').classList.add('visible');
       this._startCardRain();
+      return;
+    }
+    if (event === 'tick') {
+      // Timer tick only needs the HUD updated — rebuilding the whole board would
+      // destroy any visibility:hidden set on cards currently being dragged.
+      this._renderHUD(this.game.getState());
       return;
     }
     this.render(false);
