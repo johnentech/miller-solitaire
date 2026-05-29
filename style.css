@@ -440,6 +440,107 @@ body {
 }
 #btn-play-again:active { filter: brightness(.85); }
 
+/* ─── Stats overlay ─────────────────────────────────────────────── */
+#stats-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 10, 6, .68);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+#stats-overlay.visible { display: flex; }
+
+#stats-box {
+  position: relative;
+  background: #fdf8ee;
+  border-radius: 18px;
+  padding: 0 0 26px;
+  text-align: center;
+  min-width: 280px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.6), 0 0 0 1px rgba(200,168,75,.35);
+  overflow: hidden;
+}
+
+.stats-top-bar {
+  height: 7px;
+  background: linear-gradient(90deg, #c8a84b, #f0d06a, #c8a84b);
+  margin-bottom: 18px;
+}
+
+.stats-header { margin-bottom: 18px; }
+.stats-trophy { display: block; font-size: 2rem; line-height: 1; margin-bottom: 4px; }
+#stats-box h2 { font-size: 1.4rem; color: #2c3a5a; letter-spacing: .03em; }
+
+#stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 22px 22px;
+}
+.stat-cell {
+  background: #f0e8d8;
+  border-radius: 10px;
+  padding: 12px 6px 10px;
+  border: 1px solid #ddd0b0;
+}
+.stat-val {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: bold;
+  color: #2c3a5a;
+  line-height: 1.1;
+  font-family: Georgia, serif;
+}
+.stat-label {
+  display: block;
+  font-size: .6rem;
+  color: #8a7a5a;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-top: 4px;
+}
+
+#stats-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding: 0 22px;
+}
+#btn-stats-reset, #btn-stats-close {
+  flex: 1;
+  border-radius: 8px;
+  padding: 9px 0;
+  font-family: inherit;
+  font-size: .88rem;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  transition: filter .15s;
+}
+#btn-stats-reset:active, #btn-stats-close:active { filter: brightness(.85); }
+#btn-stats-reset {
+  background: linear-gradient(160deg, #b87868, #925450);
+  color: #fff0ec;
+  border-color: #cc8878;
+}
+#btn-stats-close {
+  background: linear-gradient(160deg, #c8a84b, #a07830);
+  color: #2c1a00;
+  border-color: #d4b852;
+}
+
+/* Trophy HUD button */
+#btn-stats {
+  background: linear-gradient(160deg, #c8a84b, #a07830);
+  color: #2c1a00;
+  border-color: #d4b852;
+  padding: 6px 10px;
+  font-size: 1rem;
+}
+
 /* ─── Deal animation ─────────────────────────────────────────────── */
 @keyframes dealCard {
   from { transform: translate(-50vw, -50vh) scale(.4); opacity: 0; }
@@ -447,6 +548,7 @@ body {
 }
 .card-container.dealing {
   animation: dealCard .4s ease forwards;
+  z-index: 500;
 }
 
 /* ─── Foundation slide animation ────────────────────────────────── */

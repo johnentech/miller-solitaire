@@ -1,4 +1,4 @@
-const CACHE = 'miller-solitaire-v17';
+const CACHE = 'miller-solitaire-v18';
 const ASSETS = [
   './',
   './index.html',

@@ -148,6 +148,48 @@ const TableauReveal = (() => {
   return { play, CONFIG };
 })();
 
+/* ─── Lifetime stats (localStorage) ───────────────────────────── */
+const Stats = (() => {
+  const KEY = 'miller-solitaire-stats';
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || {}; }
+    catch { return {}; }
+  }
+
+  function save(d) {
+    try { localStorage.setItem(KEY, JSON.stringify(d)); } catch {}
+  }
+
+  function get() {
+    const d = load();
+    return {
+      wins:      d.wins      ?? 0,
+      played:    d.played    ?? 0,
+      bestScore: d.bestScore ?? 0,
+      bestTime:  d.bestTime  ?? null,  // null = no win yet
+    };
+  }
+
+  function onGameStarted() {
+    const d = load();
+    d.played = (d.played ?? 0) + 1;
+    save(d);
+  }
+
+  function onWin(score, elapsed) {
+    const d = load();
+    d.wins = (d.wins ?? 0) + 1;
+    if (score > (d.bestScore ?? 0))                   d.bestScore = score;
+    if (d.bestTime == null || elapsed < d.bestTime)   d.bestTime  = elapsed;
+    save(d);
+  }
+
+  function reset() { save({}); }
+
+  return { get, onGameStarted, onWin, reset };
+})();
+
 /* ─── Sound engine ─────────────────────────────────────────────── */
 class SoundEngine {
   constructor() {
@@ -267,6 +309,7 @@ class SolitaireUI {
     this._buildDOM();
     this._attachEvents();
     this.render(true);
+    Stats.onGameStarted();  // count the initial game (deal fires before UI is wired)
   }
 
   _buildDOM() {
@@ -279,6 +322,7 @@ class SolitaireUI {
         <div class="hud-stat" id="hud-time">Time<span id="time-val">0:00</span></div>
         <button id="btn-auto">Auto-Complete</button>
         <button id="btn-undo" disabled>↩ Undo</button>
+        <button id="btn-stats">🏆</button>
         <button id="btn-new-game">New Game</button>
       </div>
       <div id="play-area">
@@ -302,6 +346,25 @@ class SolitaireUI {
             <div class="win-stat"><span class="win-stat-val" id="win-time">0:00</span><span class="win-stat-label">Time</span></div>
           </div>
           <button id="btn-play-again">Play Again</button>
+        </div>
+      </div>
+      <div id="stats-overlay">
+        <div id="stats-box">
+          <div class="stats-top-bar"></div>
+          <div class="stats-header">
+            <span class="stats-trophy">🏆</span>
+            <h2>Lifetime Stats</h2>
+          </div>
+          <div id="stats-grid">
+            <div class="stat-cell"><span class="stat-val" id="stat-wins">0</span><span class="stat-label">Wins</span></div>
+            <div class="stat-cell"><span class="stat-val" id="stat-played">0</span><span class="stat-label">Games Played</span></div>
+            <div class="stat-cell"><span class="stat-val" id="stat-best-score">—</span><span class="stat-label">Best Score</span></div>
+            <div class="stat-cell"><span class="stat-val" id="stat-best-time">—</span><span class="stat-label">Best Time</span></div>
+          </div>
+          <div id="stats-actions">
+            <button id="btn-stats-reset">Reset</button>
+            <button id="btn-stats-close">Close</button>
+          </div>
         </div>
       </div>
     `;
@@ -362,6 +425,21 @@ class SolitaireUI {
       this.render(true);
     });
 
+    document.getElementById('btn-stats').addEventListener('click', () => {
+      this._showStats();
+    });
+
+    document.getElementById('btn-stats-close').addEventListener('click', () => {
+      document.getElementById('stats-overlay').classList.remove('visible');
+    });
+
+    document.getElementById('btn-stats-reset').addEventListener('click', () => {
+      if (confirm('Reset all lifetime stats? This cannot be undone.')) {
+        Stats.reset();
+        this._showStats();  // refresh displayed values after reset
+      }
+    });
+
     document.getElementById('btn-auto').addEventListener('click', () => {
       if (this.game.canAutoComplete()) {
         this._runAutoComplete();
@@ -405,6 +483,21 @@ class SolitaireUI {
   // ── Rendering ──────────────────────────────────────────────────
 
   render(animate) {
+    if (animate) {
+      // Temporarily allow overflow so deal animation isn't clipped by the
+      // overflow:hidden / overflow-x:hidden on the play-area / tableau-row.
+      // html,body { overflow:hidden } prevents any page scroll while these are visible.
+      const playArea   = document.getElementById('play-area');
+      const tableauRow = document.getElementById('tableau-row');
+      if (playArea)   { playArea.style.overflow   = 'visible'; }
+      if (tableauRow) { tableauRow.style.overflowX = 'visible'; tableauRow.style.overflowY = 'visible'; }
+      // Last card: col 6, idx 6 → delay (6*2+6)*60 = 1080ms, anim 400ms → restore at 1700ms
+      setTimeout(() => {
+        if (playArea)   { playArea.style.overflow   = ''; }
+        if (tableauRow) { tableauRow.style.overflowX = ''; tableauRow.style.overflowY = ''; }
+      }, 1700);
+    }
+
     const state = this.game.getState();
     this._renderHUD(state);
     this._renderStock(state);
@@ -530,12 +623,14 @@ class SolitaireUI {
 
   onStateChange(event) {
     if (event === 'deal') {
+      Stats.onGameStarted();  // count every new deal after the first
       this.render(true);
       return;
     }
     if (event === 'win') {
       this.render(false);
       const state = this.game.getState();
+      Stats.onWin(state.score, state.elapsed);
       const m = Math.floor(state.elapsed / 60);
       const s = state.elapsed % 60;
       document.getElementById('win-score').textContent = state.score;
@@ -1027,6 +1122,23 @@ class SolitaireUI {
     };
 
     step();
+  }
+
+  // ── Lifetime stats panel ────────────────────────────────────────
+
+  _showStats() {
+    const s = Stats.get();
+    document.getElementById('stat-wins').textContent       = s.wins;
+    document.getElementById('stat-played').textContent     = s.played;
+    document.getElementById('stat-best-score').textContent = s.bestScore > 0 ? s.bestScore : '—';
+    if (s.bestTime !== null) {
+      const m   = Math.floor(s.bestTime / 60);
+      const sec = s.bestTime % 60;
+      document.getElementById('stat-best-time').textContent = `${m}:${sec.toString().padStart(2, '0')}`;
+    } else {
+      document.getElementById('stat-best-time').textContent = '—';
+    }
+    document.getElementById('stats-overlay').classList.add('visible');
   }
 
   // ── Card rain on win ────────────────────────────────────────────
