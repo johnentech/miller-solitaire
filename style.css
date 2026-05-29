@@ -532,11 +532,11 @@ body {
   border-color: #c8a04a;
 }
 
-/* Trophy HUD button — same vivid gold as Auto-Complete */
+/* Trophy HUD button — muted slate blue matching card-back palette */
 #btn-stats {
-  background: linear-gradient(160deg, #f0c03a, #c8880e);
-  color: #2c1a00;
-  border-color: #e8c040;
+  background: linear-gradient(160deg, #5a80b0, #3a5e8a);
+  color: #e8f0ff;
+  border-color: #6a90c0;
   padding: 6px 10px;
   font-size: 1rem;
 }
