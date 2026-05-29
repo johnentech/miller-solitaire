@@ -87,6 +87,12 @@ body {
   margin-top: 1px;
 }
 
+/* Timer: tabular digits so "9:59" → "10:00" never shifts; min-width holds MM:SS */
+#hud-time {
+  min-width: 80px;
+  font-variant-numeric: tabular-nums;
+}
+
 #btn-new-game, #btn-auto, #btn-undo {
   background: linear-gradient(160deg, #c8a84b, #a07830);
   color: #2c1a00;

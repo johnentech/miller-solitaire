@@ -173,7 +173,7 @@ class SolitaireUI {
         <h1>Cottage Solitaire</h1>
         <div class="hud-stat">Score<span id="score-val">0</span></div>
         <div class="hud-stat">Moves<span id="moves-val">0</span></div>
-        <div class="hud-stat">Time<span id="time-val">0:00</span></div>
+        <div class="hud-stat" id="hud-time">Time<span id="time-val">0:00</span></div>
         <button id="btn-auto">Auto-Complete</button>
         <button id="btn-undo" disabled>↩ Undo</button>
         <button id="btn-new-game">New Game</button>
@@ -626,6 +626,8 @@ class SolitaireUI {
       offsetY: y - rect.top,
       moved: false,
       clone: null,
+      hiddenEls: [],
+      originalRect: rect,
     };
   }
 
@@ -643,9 +645,10 @@ class SolitaireUI {
     if (!ds.moved) {
       ds.moved = true;
       this.clearSelection();
-      // Build drag clone
+      // Build drag clone and hide originals
       ds.clone = this._buildDragClone(ds);
       document.body.appendChild(ds.clone);
+      ds.hiddenEls = this._hideDraggedCards(ds);
     }
 
     if (ds.clone) {
@@ -667,13 +670,8 @@ class SolitaireUI {
 
     document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
 
-    if (ds.clone) {
-      ds.clone.remove();
-      ds.clone = null;
-    }
-
     if (!ds.moved) {
-      // Detect double-tap: same card tapped twice within 350 ms
+      // Tap — no clone was ever created
       const now      = Date.now();
       const cardId   = ds.cardEl.dataset.id;
       const isDouble = this._lastTap &&
@@ -687,24 +685,38 @@ class SolitaireUI {
       return;
     }
 
-    // Find drop target
+    // Drag completed — find a valid drop target
     const target = this._getDropTarget(x, y, null);
-    if (!target) return;
+    if (!target) {
+      this._animateReturnDrag(ds);
+      return;
+    }
 
-    const targetType = target.dataset.foundationIndex !== undefined ? 'foundation' : 'tableau';
-    const targetIndex = parseInt(
-      target.dataset.foundationIndex ?? target.dataset.colIndex ?? -1
-    );
-    if (targetIndex === -1) return;
+    const targetType  = target.dataset.foundationIndex !== undefined ? 'foundation' : 'tableau';
+    const targetIndex = parseInt(target.dataset.foundationIndex ?? target.dataset.colIndex ?? -1);
+    if (targetIndex === -1) {
+      this._animateReturnDrag(ds);
+      return;
+    }
 
+    // Try to commit the move (clone is still in DOM until we know it succeeded)
+    let moved = false;
     if (ds.source === 'waste') {
-      this.game.playWasteCard(targetType, targetIndex);
+      moved = this.game.playWasteCard(targetType, targetIndex);
     } else if (ds.source === 'tableau') {
       if (targetType === 'foundation') {
-        this.game.moveTableauToFoundation(ds.colIndex, targetIndex);
+        moved = this.game.moveTableauToFoundation(ds.colIndex, targetIndex);
       } else {
-        this.game.moveTableauStack(ds.colIndex, ds.cardIndex, targetIndex);
+        moved = this.game.moveTableauStack(ds.colIndex, ds.cardIndex, targetIndex);
       }
+    }
+
+    if (moved) {
+      // Success — remove clone; board was already re-rendered by onStateChange
+      if (ds.clone) { ds.clone.remove(); ds.clone = null; }
+    } else {
+      // Game rejected the move — fly the clone back
+      this._animateReturnDrag(ds);
     }
   }
 
@@ -714,6 +726,7 @@ class SolitaireUI {
     wrapper.style.cssText = `
       position: fixed; z-index: 9999; pointer-events: none;
       display: flex; flex-direction: column; gap: 0;
+      transform: scale(1.05); transform-origin: top center;
     `;
 
     let cards = [];
@@ -757,6 +770,55 @@ class SolitaireUI {
       }
     }
     return null;
+  }
+
+  // ── Drag helper: hide/restore/return ────────────────────────────
+
+  _hideDraggedCards(ds) {
+    const els = [];
+    if (ds.source === 'waste') {
+      ds.cardEl.style.opacity = '0';
+      els.push(ds.cardEl);
+    } else if (ds.source === 'tableau') {
+      const colEl = document.getElementById(`tableau-${ds.colIndex}`);
+      if (colEl) {
+        colEl.querySelectorAll('.card-container').forEach(el => {
+          if (parseInt(el.dataset.cardIndex) >= ds.cardIndex) {
+            el.style.opacity = '0';
+            els.push(el);
+          }
+        });
+      }
+    }
+    return els;
+  }
+
+  _restoreDraggedCards(ds) {
+    if (ds.hiddenEls) {
+      ds.hiddenEls.forEach(el => { if (el.isConnected) el.style.opacity = ''; });
+    }
+  }
+
+  _animateReturnDrag(ds) {
+    const clone = ds.clone;
+    if (!clone) { this._restoreDraggedCards(ds); return; }
+
+    clone.style.pointerEvents = 'none';
+    // Snap the transition starting point to current painted position
+    void clone.offsetWidth;
+    clone.style.transition = 'left 300ms ease-in-out, top 300ms ease-in-out, transform 300ms ease-in-out';
+
+    requestAnimationFrame(() => {
+      clone.style.left      = `${ds.originalRect.left}px`;
+      clone.style.top       = `${ds.originalRect.top}px`;
+      clone.style.transform = 'scale(1)';
+    });
+
+    setTimeout(() => {
+      clone.remove();
+      ds.clone = null;
+      this._restoreDraggedCards(ds);
+    }, 330);
   }
 
   // ── Auto-complete animation ─────────────────────────────────────
