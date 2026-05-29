@@ -1,4 +1,4 @@
-const CACHE = 'miller-solitaire-v19';
+const CACHE = 'miller-solitaire-v20';
 const ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,8 @@ const ASSETS = [
   './manifest.json',
   './assets/board2.png',
   './assets/Card_Back.png',
+  './assets/icon-192.png',
+  './assets/icon-512.png',
   // 52 card face images
   './assets/cards/spades_A.png',
   './assets/cards/spades_2.png',
