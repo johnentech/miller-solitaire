@@ -170,7 +170,7 @@ class SolitaireUI {
     const app = document.getElementById('app');
     app.innerHTML = `
       <div id="hud">
-        <h1>Cottage Solitaire</h1>
+        <h1>Miller Solitaire</h1>
         <div class="hud-stat">Score<span id="score-val">0</span></div>
         <div class="hud-stat">Moves<span id="moves-val">0</span></div>
         <div class="hud-stat" id="hud-time">Time<span id="time-val">0:00</span></div>

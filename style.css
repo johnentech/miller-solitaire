@@ -55,10 +55,12 @@ body {
 }
 
 #hud h1 {
-  font-size: 1.25rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
   color: #f5e6c8;
   text-shadow: 1px 2px 4px rgba(0,0,0,.5);
-  letter-spacing: .05em;
+  letter-spacing: .04em;
   margin-right: auto;
 }
 
@@ -93,22 +95,56 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Shared button base ─────────────────────────────────────────── */
 #btn-new-game, #btn-auto, #btn-undo {
-  background: linear-gradient(160deg, #c8a84b, #a07830);
-  color: #2c1a00;
-  border: none;
   border-radius: 6px;
   padding: 6px 14px;
   font-family: inherit;
   font-size: .85rem;
   font-weight: bold;
   cursor: pointer;
+  border: 1px solid transparent;
   box-shadow: 0 2px 6px rgba(0,0,0,.4);
-  transition: filter .15s;
+  transition: filter .15s, box-shadow .15s;
 }
 #btn-new-game:active, #btn-auto:active, #btn-undo:active { filter: brightness(.85); }
-#btn-auto { background: linear-gradient(160deg, #7ecf7e, #3a8f3a); color: #001a00; }
-#btn-auto:disabled, #btn-undo:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── New Game — warm terracotta ─────────────────────────────────── */
+#btn-new-game {
+  background: linear-gradient(160deg, #c4623a, #9e4422);
+  color: #fff5ee;
+  border-color: #d4784e;
+}
+
+/* ── Undo — dusty rose ──────────────────────────────────────────── */
+#btn-undo {
+  background: linear-gradient(160deg, #b87868, #925450);
+  color: #fff0ec;
+  border-color: #cc8878;
+}
+#btn-undo:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Auto-Complete — gold glow when available, flat gray when not ─ */
+@keyframes autoGoldPulse {
+  0%, 100% { box-shadow: 0 2px 6px rgba(0,0,0,.4), 0 0  6px 1px rgba(210,168,50,.35); }
+  50%       { box-shadow: 0 2px 6px rgba(0,0,0,.4), 0 0 18px 5px rgba(220,180,40,.60); }
+}
+#btn-auto {
+  background: linear-gradient(160deg, #f0c03a, #c8880e);
+  color: #2c1a00;
+  border-color: #e8c040;
+  animation: autoGoldPulse 2.2s ease-in-out infinite;
+}
+#btn-auto:disabled {
+  background: #5e5854;
+  color: #928e8a;
+  border-color: #4e4a46;
+  opacity: 1;
+  cursor: not-allowed;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  animation: none;
+  filter: none;
+}
 
 /* ─── Play area ─────────────────────────────────────────────────── */
 #play-area {
