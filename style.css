@@ -219,7 +219,7 @@ body {
   pointer-events: none;
 }
 .slot.tableau-placeholder::after {
-  content: 'K';
+  content: 'M';
   font-size: 2rem;
   font-weight: bold;
   color: rgba(255,255,255,.15);
