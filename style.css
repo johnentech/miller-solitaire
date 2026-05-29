@@ -116,11 +116,11 @@ body {
   border-color: #b05a65;
 }
 
-/* ── Undo — dusty rose ──────────────────────────────────────────── */
+/* ── Undo — matches New Game burgundy rose ──────────────────────── */
 #btn-undo {
-  background: linear-gradient(160deg, #b87868, #925450);
+  background: linear-gradient(160deg, #9a4855, #742835);
   color: #fff0ec;
-  border-color: #cc8878;
+  border-color: #b05a65;
 }
 #btn-undo:disabled { opacity: .4; cursor: not-allowed; }
 
