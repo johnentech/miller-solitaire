@@ -645,10 +645,10 @@ class SolitaireUI {
     if (!ds.moved) {
       ds.moved = true;
       this.clearSelection();
-      // Build drag clone and hide originals
+      // Hide originals before the clone appears so there is no flash of duplication
       ds.clone = this._buildDragClone(ds);
-      document.body.appendChild(ds.clone);
       ds.hiddenEls = this._hideDraggedCards(ds);
+      document.body.appendChild(ds.clone);
     }
 
     if (ds.clone) {
@@ -775,16 +775,20 @@ class SolitaireUI {
   // ── Drag helper: hide/restore/return ────────────────────────────
 
   _hideDraggedCards(ds) {
+    const hide = el => {
+      el.style.opacity    = '0';
+      el.style.visibility = 'hidden';
+    };
     const els = [];
     if (ds.source === 'waste') {
-      ds.cardEl.style.opacity = '0';
+      hide(ds.cardEl);
       els.push(ds.cardEl);
     } else if (ds.source === 'tableau') {
       const colEl = document.getElementById(`tableau-${ds.colIndex}`);
       if (colEl) {
         colEl.querySelectorAll('.card-container').forEach(el => {
           if (parseInt(el.dataset.cardIndex) >= ds.cardIndex) {
-            el.style.opacity = '0';
+            hide(el);
             els.push(el);
           }
         });
@@ -795,7 +799,12 @@ class SolitaireUI {
 
   _restoreDraggedCards(ds) {
     if (ds.hiddenEls) {
-      ds.hiddenEls.forEach(el => { if (el.isConnected) el.style.opacity = ''; });
+      ds.hiddenEls.forEach(el => {
+        if (el.isConnected) {
+          el.style.opacity    = '';
+          el.style.visibility = '';
+        }
+      });
     }
   }
 
