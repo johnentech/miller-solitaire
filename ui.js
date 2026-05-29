@@ -781,8 +781,14 @@ class SolitaireUI {
     };
     const els = [];
     if (ds.source === 'waste') {
-      hide(ds.cardEl);
-      els.push(ds.cardEl);
+      // Query the DOM fresh (same pattern as tableau) rather than relying on stored reference
+      const wasteEl = document.getElementById('waste');
+      if (wasteEl) {
+        wasteEl.querySelectorAll('.card-container').forEach(el => {
+          hide(el);
+          els.push(el);
+        });
+      }
     } else if (ds.source === 'tableau') {
       const colEl = document.getElementById(`tableau-${ds.colIndex}`);
       if (colEl) {
