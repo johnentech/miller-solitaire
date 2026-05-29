@@ -50,7 +50,6 @@ class SolitaireGame {
     this.timerInterval = null;
     this.elapsed = 0;
     this.onStateChange = null; // callback for UI
-    this.onSound = null;       // callback for sound events
     this.deal();
   }
 
@@ -107,10 +106,6 @@ class SolitaireGame {
     if (this.onStateChange) this.onStateChange(event);
   }
 
-  _sound(name) {
-    if (this.onSound) this.onSound(name);
-  }
-
   _saveHistory() {
     this.history.push({
       tableau:    this.tableau.map(col => col.map(c => ({ ...c }))),
@@ -148,7 +143,6 @@ class SolitaireGame {
       this._addScore(-20);
       this.stock = this.waste.reverse().map(c => ({ ...c, faceUp: false }));
       this.waste = [];
-      this._sound('shuffle');
       this._notify('recycle');
       return true;
     }
@@ -156,7 +150,6 @@ class SolitaireGame {
     const card = this.stock.pop();
     card.faceUp = true;
     this.waste.push(card);
-    this._sound('flip');
     this._notify('draw');
     return true;
   }
@@ -173,7 +166,6 @@ class SolitaireGame {
       this.waste.pop();
       found.push(card);
       this._addScore(10);
-      this._sound('place');
       this.moves++;
       this._notify('move');
       this._checkWin();
@@ -186,7 +178,6 @@ class SolitaireGame {
       this._saveHistory();
       this.waste.pop();
       pile.push(card);
-      this._sound('place');
       this.moves++;
       this._notify('move');
       return true;
@@ -207,7 +198,7 @@ class SolitaireGame {
     fromPile.splice(cardIndex);
     toPile.push(...stack);
 
-    // Auto-flip revealed card (sound fires via TableauReveal animation callback)
+    // Auto-flip revealed card
     if (fromPile.length > 0 && !fromPile[fromPile.length - 1].faceUp) {
       const revealed = fromPile[fromPile.length - 1];
       revealed.faceUp   = true;
@@ -216,7 +207,6 @@ class SolitaireGame {
     }
 
     this.moves++;
-    this._sound('place');
     this._notify('move');
     return true;
   }
@@ -244,7 +234,6 @@ class SolitaireGame {
     }
 
     this.moves++;
-    this._sound('place');
     this._notify('move');
     this._checkWin();
     return true;
@@ -302,7 +291,6 @@ class SolitaireGame {
     const won = this.foundation.every(f => f.length === 13);
     if (won) {
       this.stopTimer();
-      this._sound('win');
       this._notify('win');
     }
   }
