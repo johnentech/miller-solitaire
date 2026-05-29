@@ -91,6 +91,31 @@ const TableauReveal = (() => {
     const face  = cardEl.querySelector('.card-face');
     if (!inner || !back || !face) return;
 
+    // ── Lift overflow on clipping ancestors so the card can rise freely ──
+    // The lift keyframe moves the card up by CONFIG.lift px; without this,
+    // overflow:hidden on #play-area / overflow-x:hidden on #tableau-row
+    // clips the card at the top of its column.
+    const clippingEls = [
+      cardEl.closest('.tableau-col'),
+      document.getElementById('tableau-row'),
+      document.getElementById('play-area'),
+    ].filter(Boolean);
+    const savedOverflow = clippingEls.map(el => ({
+      el,
+      overflow:  el.style.overflow,
+      overflowX: el.style.overflowX,
+      overflowY: el.style.overflowY,
+    }));
+    clippingEls.forEach(el => {
+      el.style.overflow  = 'visible';
+      el.style.overflowX = 'visible';
+      el.style.overflowY = 'visible';
+    });
+
+    // ── Elevate card above sibling columns during the flip ───────────────
+    const savedZIndex = cardEl.style.zIndex;
+    cardEl.style.zIndex = '1000';
+
     const rot  = CONFIG.axis === 'X' ? 'rotateX' : 'rotateY';
     const ease = EASING[CONFIG.feel] || EASING.smooth;
     const dur  = CONFIG.duration;
@@ -119,7 +144,7 @@ const TableauReveal = (() => {
     cardEl.animate(liftKeyframes(),
       { duration: dur * (CONFIG.feel === 'springy' ? 1.15 : 1), easing: ease.lift, fill: 'none' });
 
-    // Warm glow on Kings & Aces
+    // Warm glow
     if (CONFIG.glow) {
       const glow = document.createElement('div');
       glow.className = 'reveal-glow';
@@ -135,12 +160,20 @@ const TableauReveal = (() => {
 
     if (typeof onFlipSound === 'function') setTimeout(onFlipSound, dur * 0.42);
 
-    // Settle: restore inline styles so normal rendering can take over
+    // Settle: restore all inline styles once the lift has fully returned
+    // (lift uses fill:'none' so the card is back in place by dur ms)
     const total = dur * (CONFIG.feel === 'springy' ? 1.15 : 1) + 40;
     setTimeout(() => {
       inner.style.transition = '';
       inner.style.transform  = '';
       back.style.display     = 'none';
+      // Restore overflow and z-index — layout is unchanged after this point
+      savedOverflow.forEach(({ el, overflow, overflowX, overflowY }) => {
+        el.style.overflow  = overflow;
+        el.style.overflowX = overflowX;
+        el.style.overflowY = overflowY;
+      });
+      cardEl.style.zIndex = savedZIndex;
       if (typeof onComplete === 'function') onComplete();
     }, total);
   }
