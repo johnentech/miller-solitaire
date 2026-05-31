@@ -180,6 +180,14 @@ const TableauReveal = (() => {
   return { play, CONFIG };
 })();
 
+/* ─── Draw mode preference (localStorage) ──────────────────────── */
+const DrawMode = (() => {
+  const KEY = 'miller-solitaire-draw-mode';
+  function get() { try { return localStorage.getItem(KEY) || 'draw1'; } catch { return 'draw1'; } }
+  function set(mode) { try { localStorage.setItem(KEY, mode); } catch {} }
+  return { get, set };
+})();
+
 /* ─── Lifetime stats (localStorage) ───────────────────────────── */
 const Stats = (() => {
   const KEY = 'miller-solitaire-stats';
@@ -294,6 +302,23 @@ class SolitaireUI {
           </div>
         </div>
       </div>
+      <div id="drawmode-overlay">
+        <div id="drawmode-box">
+          <div class="drawmode-top-bar"></div>
+          <h2>New Game</h2>
+          <p class="drawmode-subtitle">Choose your draw mode</p>
+          <div id="drawmode-options">
+            <button class="drawmode-btn" data-mode="draw1">
+              <span class="drawmode-label">Draw 1</span>
+              <span class="drawmode-desc">Relaxed play</span>
+            </button>
+            <button class="drawmode-btn" data-mode="draw3">
+              <span class="drawmode-label">Draw 3</span>
+              <span class="drawmode-desc">Classic challenge</span>
+            </button>
+          </div>
+        </div>
+      </div>
     `;
 
     // Foundations
@@ -323,33 +348,39 @@ class SolitaireUI {
 
   _attachEvents() {
     document.getElementById('btn-new-game').addEventListener('click', () => {
-      // Dismiss win overlay if showing
-      document.getElementById('win-overlay').classList.remove('visible');
-      document.getElementById('win-rain').innerHTML = '';
-      this.clearSelection();
+      this._showDrawModeModal((mode) => {
+        DrawMode.set(mode);
+        // Dismiss win overlay if showing
+        document.getElementById('win-overlay').classList.remove('visible');
+        document.getElementById('win-rain').innerHTML = '';
+        this.clearSelection();
 
-      // Instant wipe — clear every card element without animation
-      document.getElementById('stock').innerHTML = '';
-      document.getElementById('waste').innerHTML = '';
-      for (let i = 0; i < 4; i++) {
-        const fc = document.getElementById(`foundation-${i}`);
-        if (fc) { const cc = fc.querySelector('.card-container'); if (cc) cc.remove(); }
-      }
-      for (let col = 0; col < 7; col++) {
-        const tc = document.getElementById(`tableau-${col}`);
-        if (tc) tc.innerHTML = '';
-      }
+        // Instant wipe — clear every card element without animation
+        document.getElementById('stock').innerHTML = '';
+        document.getElementById('waste').innerHTML = '';
+        for (let i = 0; i < 4; i++) {
+          const fc = document.getElementById(`foundation-${i}`);
+          if (fc) { const cc = fc.querySelector('.card-container'); if (cc) cc.remove(); }
+        }
+        for (let col = 0; col < 7; col++) {
+          const tc = document.getElementById(`tableau-${col}`);
+          if (tc) tc.innerHTML = '';
+        }
 
-      // Brief pause so the cleared table feels intentional, then deal
-      setTimeout(() => this.game.deal(), 200);
+        // Brief pause so the cleared table feels intentional, then deal
+        setTimeout(() => this.game.deal(mode), 200);
+      });
     });
 
     document.getElementById('btn-play-again').addEventListener('click', () => {
-      document.getElementById('win-overlay').classList.remove('visible');
-      document.getElementById('win-rain').innerHTML = '';
-      this.clearSelection();
-      this.game.deal();
-      this.render(true);
+      this._showDrawModeModal((mode) => {
+        DrawMode.set(mode);
+        document.getElementById('win-overlay').classList.remove('visible');
+        document.getElementById('win-rain').innerHTML = '';
+        this.clearSelection();
+        this.game.deal(mode);
+        // render(true) fires via onStateChange('deal')
+      });
     });
 
     document.getElementById('btn-stats').addEventListener('click', () => {
@@ -462,7 +493,29 @@ class SolitaireUI {
   _renderWaste(state) {
     const el = document.getElementById('waste');
     el.innerHTML = '';
-    if (state.waste.length > 0) {
+    if (state.waste.length === 0) return;
+
+    if (state.drawMode === 'draw3') {
+      // Show up to 3 cards fanned horizontally so the player can see depth
+      const FAN = 14; // px offset per card
+      const start = Math.max(0, state.waste.length - 3);
+      const visible = state.waste.slice(start);
+      visible.forEach((card, i) => {
+        const isTop = i === visible.length - 1;
+        const cardEl = buildCardEl(card);
+        cardEl.style.position = 'absolute';
+        cardEl.style.left = `${i * FAN}px`;
+        cardEl.style.top = '0';
+        cardEl.style.zIndex = i;
+        if (isTop) {
+          cardEl.dataset.source = 'waste';
+        } else {
+          // Non-top cards are visual only — only the top card is playable
+          cardEl.style.pointerEvents = 'none';
+        }
+        el.appendChild(cardEl);
+      });
+    } else {
       const card = state.waste[state.waste.length - 1];
       const cardEl = buildCardEl(card);
       cardEl.dataset.source = 'waste';
@@ -1065,6 +1118,48 @@ class SolitaireUI {
       document.getElementById('stat-best-time').textContent = '—';
     }
     document.getElementById('stats-overlay').classList.add('visible');
+  }
+
+  // ── Draw mode selection modal ───────────────────────────────────
+  // Shows the "New Game / choose draw mode" overlay. Calls onConfirm(mode)
+  // when the player picks a mode. Dismisses silently if they click outside.
+
+  _showDrawModeModal(onConfirm) {
+    const overlay = document.getElementById('drawmode-overlay');
+    const currentMode = DrawMode.get();
+
+    // Highlight whichever mode was used last
+    overlay.querySelectorAll('.drawmode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === currentMode);
+    });
+    overlay.classList.add('visible');
+
+    const cleanup = () => {
+      overlay.removeEventListener('click', handleOverlayClick);
+      overlay.querySelectorAll('.drawmode-btn').forEach(btn => {
+        btn.removeEventListener('click', handleBtnClick);
+      });
+    };
+
+    const handleBtnClick = (e) => {
+      const mode = e.currentTarget.dataset.mode;
+      overlay.classList.remove('visible');
+      cleanup();
+      onConfirm(mode);
+    };
+
+    const handleOverlayClick = (e) => {
+      if (e.target === overlay) {
+        // Clicked the backdrop — dismiss without starting a new game
+        overlay.classList.remove('visible');
+        cleanup();
+      }
+    };
+
+    overlay.addEventListener('click', handleOverlayClick);
+    overlay.querySelectorAll('.drawmode-btn').forEach(btn => {
+      btn.addEventListener('click', handleBtnClick);
+    });
   }
 
   // ── Card rain on win ────────────────────────────────────────────

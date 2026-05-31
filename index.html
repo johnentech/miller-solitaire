@@ -31,9 +31,10 @@
       });
     }
 
-    // Boot game
+    // Boot game — restore saved draw mode so the first deal uses the right rules
     window.addEventListener('DOMContentLoaded', () => {
-      const game = new SolitaireGame();
+      const savedMode = localStorage.getItem('miller-solitaire-draw-mode') || 'draw1';
+      const game = new SolitaireGame(savedMode);
       new SolitaireUI(game);
     });
   </script>

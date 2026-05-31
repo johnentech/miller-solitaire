@@ -543,6 +543,92 @@ body {
   font-size: 1rem;
 }
 
+/* ─── Draw mode modal ───────────────────────────────────────────── */
+#drawmode-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 10, 6, .68);
+  z-index: 3000;
+  align-items: center;
+  justify-content: center;
+}
+#drawmode-overlay.visible { display: flex; }
+
+#drawmode-box {
+  position: relative;
+  background: #fdf8ee;
+  border-radius: 18px;
+  padding: 0 0 28px;
+  text-align: center;
+  min-width: 300px;
+  max-width: 360px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.6), 0 0 0 1px rgba(200,168,75,.35);
+  overflow: hidden;
+}
+.drawmode-top-bar {
+  height: 7px;
+  background: linear-gradient(90deg, #9a4855, #c06070, #9a4855);
+  margin-bottom: 22px;
+}
+#drawmode-box h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.45rem;
+  color: #2c3a5a;
+  letter-spacing: .03em;
+  margin-bottom: 6px;
+}
+.drawmode-subtitle {
+  font-size: .72rem;
+  color: #8a7a5a;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 22px;
+}
+#drawmode-options {
+  display: flex;
+  gap: 14px;
+  padding: 0 24px;
+}
+.drawmode-btn {
+  flex: 1;
+  background: #f0e8d8;
+  border: 2px solid #ddd0b0;
+  border-radius: 12px;
+  padding: 16px 12px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  transition: filter .15s, border-color .15s, box-shadow .15s;
+}
+.drawmode-btn:hover {
+  border-color: #c8a84b;
+  box-shadow: 0 4px 14px rgba(0,0,0,.22);
+  filter: brightness(1.04);
+}
+.drawmode-btn:active { filter: brightness(.88); }
+.drawmode-btn.active {
+  background: linear-gradient(160deg, #eee0c4, #ddd0b0);
+  border-color: #c8a84b;
+  box-shadow: 0 2px 10px rgba(200,168,75,.35), 0 0 0 2px rgba(200,168,75,.18);
+}
+.drawmode-label {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #2c3a5a;
+  margin-bottom: 6px;
+  font-family: Georgia, serif;
+  letter-spacing: .02em;
+}
+.drawmode-desc {
+  display: block;
+  font-size: .68rem;
+  color: #8a7a5a;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
 /* ─── Deal animation ─────────────────────────────────────────────── */
 @keyframes dealCard {
   from { transform: translate(-50vw, -50vh) scale(.4); opacity: 0; }

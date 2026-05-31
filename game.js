@@ -43,23 +43,25 @@ function canPlaceOnFoundation(card, foundation) {
 }
 
 class SolitaireGame {
-  constructor() {
+  constructor(drawMode) {
     this.score = 0;
     this.moves = 0;
     this.startTime = null;
     this.timerInterval = null;
     this.elapsed = 0;
+    this.drawMode = drawMode || 'draw1';
     this.onStateChange = null; // callback for UI
     this.deal();
   }
 
-  deal() {
+  deal(drawMode) {
     clearInterval(this.timerInterval);
     this.score = 0;
     this.moves = 0;
     this.elapsed = 0;
     this.startTime = null;
     this.history = [];
+    if (drawMode) this.drawMode = drawMode;
 
     const deck = shuffle(createDeck());
     this.tableau = Array.from({ length: 7 }, () => []);
@@ -147,9 +149,19 @@ class SolitaireGame {
       return true;
     }
     this._saveHistory();
-    const card = this.stock.pop();
-    card.faceUp = true;
-    this.waste.push(card);
+    if (this.drawMode === 'draw3') {
+      // Draw up to 3 cards; flip fewer when stock has less than 3 remaining
+      const count = Math.min(3, this.stock.length);
+      for (let i = 0; i < count; i++) {
+        const card = this.stock.pop();
+        card.faceUp = true;
+        this.waste.push(card);
+      }
+    } else {
+      const card = this.stock.pop();
+      card.faceUp = true;
+      this.waste.push(card);
+    }
     this._notify('draw');
     return true;
   }
@@ -308,6 +320,7 @@ class SolitaireGame {
       score: this.score,
       moves: this.moves,
       elapsed: this.elapsed,
+      drawMode: this.drawMode,
     };
   }
 }
